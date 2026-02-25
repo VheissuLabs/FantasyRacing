@@ -14,6 +14,7 @@ This application is a Laravel application and its main Laravel ecosystems packag
 - inertiajs/inertia-laravel (INERTIA_LARAVEL) - v2
 - laravel/fortify (FORTIFY) - v1
 - laravel/framework (LARAVEL) - v12
+- laravel/nightwatch (NIGHTWATCH) - v1
 - laravel/prompts (PROMPTS) - v0
 - laravel/reverb (REVERB) - v1
 - laravel/wayfinder (WAYFINDER) - v0
