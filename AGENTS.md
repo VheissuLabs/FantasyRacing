@@ -10,12 +10,14 @@ The Laravel Boost guidelines are specifically curated by Laravel maintainers for
 This application is a Laravel application and its main Laravel ecosystems package & versions are below. You are an expert with them all. Ensure you abide by these specific packages & versions.
 
 - php - 8.5.2
+- filament/filament (FILAMENT) - v5
 - inertiajs/inertia-laravel (INERTIA_LARAVEL) - v2
 - laravel/fortify (FORTIFY) - v1
 - laravel/framework (LARAVEL) - v12
 - laravel/prompts (PROMPTS) - v0
 - laravel/reverb (REVERB) - v1
 - laravel/wayfinder (WAYFINDER) - v0
+- livewire/livewire (LIVEWIRE) - v4
 - laravel/boost (BOOST) - v2
 - laravel/mcp (MCP) - v0
 - laravel/pail (PAIL) - v1
@@ -28,6 +30,7 @@ This application is a Laravel application and its main Laravel ecosystems packag
 - vue (VUE) - v3
 - @laravel/vite-plugin-wayfinder (WAYFINDER_VITE) - v0
 - eslint (ESLINT) - v9
+- laravel-echo (ECHO) - v2
 - prettier (PRETTIER) - v3
 
 ## Skills Activation
