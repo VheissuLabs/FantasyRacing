@@ -1,22 +1,22 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
-import Heading from '@/components/Heading.vue';
-import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import AppLayout from '@/layouts/AppLayout.vue';
-import SettingsLayout from '@/layouts/settings/Layout.vue';
-import { type BreadcrumbItem } from '@/types';
-import PasswordController from '@/actions/App/Http/Controllers/Settings/PasswordController';
-import { edit } from '@/routes/user-password';
+    import { Form, Head } from '@inertiajs/vue3'
+    import PasswordController from '@/actions/App/Http/Controllers/Settings/PasswordController'
+    import Heading from '@/components/Heading.vue'
+    import InputError from '@/components/InputError.vue'
+    import { Button } from '@/components/ui/button'
+    import { Input } from '@/components/ui/input'
+    import { Label } from '@/components/ui/label'
+    import AppLayout from '@/layouts/AppLayout.vue'
+    import SettingsLayout from '@/layouts/Settings/Layout.vue'
+    import { edit } from '@/routes/user-password'
+    import { type BreadcrumbItem } from '@/types'
 
-const breadcrumbItems: BreadcrumbItem[] = [
-    {
-        title: 'Password settings',
-        href: edit().url,
-    },
-];
+    const breadcrumbItems: BreadcrumbItem[] = [
+        {
+            title: 'Password settings',
+            href: edit().url,
+        },
+    ]
 </script>
 
 <template>
@@ -74,9 +74,9 @@ const breadcrumbItems: BreadcrumbItem[] = [
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="password_confirmation"
-                            >Confirm password</Label
-                        >
+                        <Label for="password_confirmation">
+                            Confirm password
+                        </Label>
                         <Input
                             id="password_confirmation"
                             name="password_confirmation"
@@ -92,8 +92,9 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         <Button
                             :disabled="processing"
                             data-test="update-password-button"
-                            >Save password</Button
                         >
+                            Save password
+                        </Button>
 
                         <Transition
                             enter-active-class="transition ease-in-out"

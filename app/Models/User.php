@@ -3,25 +3,23 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
+    /** @var list<string> */
+    protected $guarded = [
+        'id',
     ];
 
     /**
@@ -47,6 +45,49 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+            'is_super_admin' => 'boolean',
         ];
+    }
+
+    public function managedFranchises(): BelongsToMany
+    {
+        return $this->belongsToMany(Franchise::class, 'franchise_managers')->withTimestamps();
+    }
+
+    public function leagues(): BelongsToMany
+    {
+        return $this->belongsToMany(League::class, 'league_members')
+            ->withPivot('role', 'joined_at')
+            ->withTimestamps();
+    }
+
+    public function leagueMembers(): HasMany
+    {
+        return $this->hasMany(LeagueMember::class);
+    }
+
+    public function commissionedLeagues(): HasMany
+    {
+        return $this->hasMany(League::class, 'commissioner_id');
+    }
+
+    public function fantasyTeams(): HasMany
+    {
+        return $this->hasMany(FantasyTeam::class);
+    }
+
+    public function leagueJoinRequests(): HasMany
+    {
+        return $this->hasMany(LeagueJoinRequest::class);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return (bool) $this->is_super_admin;
+    }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $this->isSuperAdmin() || $this->managedFranchises()->exists();
     }
 }

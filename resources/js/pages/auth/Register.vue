@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
-import InputError from '@/components/InputError.vue';
-import TextLink from '@/components/TextLink.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
-import AuthBase from '@/layouts/AuthLayout.vue';
-import { login } from '@/routes';
-import { store } from '@/routes/register';
+    import { Form, Head } from '@inertiajs/vue3'
+    import InputError from '@/components/InputError.vue'
+    import TextLink from '@/components/TextLink.vue'
+    import { Button } from '@/components/ui/button'
+    import { Input } from '@/components/ui/input'
+    import { Label } from '@/components/ui/label'
+    import { Spinner } from '@/components/ui/spinner'
+    import AuthBase from '@/layouts/AuthLayout.vue'
+    import { login } from '@/routes'
+    import { store } from '@/routes/register'
 </script>
 
 <template>
@@ -82,6 +82,12 @@ import { store } from '@/routes/register';
                     <InputError :message="errors.password_confirmation" />
                 </div>
 
+                <input
+                    type="hidden"
+                    name="timezone"
+                    :value="Intl.DateTimeFormat().resolvedOptions().timeZone"
+                />
+
                 <Button
                     type="submit"
                     class="mt-2 w-full"
@@ -100,8 +106,9 @@ import { store } from '@/routes/register';
                     :href="login()"
                     class="underline underline-offset-4"
                     :tabindex="6"
-                    >Log in</TextLink
                 >
+                    Log in
+                </TextLink>
             </div>
         </Form>
     </AuthBase>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { useId } from 'vue';
+    import { useId } from 'vue'
 
-const patternId = `pattern-${useId()}`;
+    const patternId = `pattern-${useId()}`
 </script>
 
 <template>
@@ -18,7 +18,10 @@ const patternId = `pattern-${useId()}`;
                 height="8"
                 patternUnits="userSpaceOnUse"
             >
-                <path d="M-1 5L5 -1M3 9L8.5 3.5" stroke-width="0.5"></path>
+                <path
+                    d="M-1 5L5 -1M3 9L8.5 3.5"
+                    stroke-width="0.5"
+                ></path>
             </pattern>
         </defs>
         <rect

@@ -1,78 +1,78 @@
 <script setup lang="ts">
-import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-vue-next';
-import { computed } from 'vue';
-import AppLogo from '@/components/AppLogo.vue';
-import AppLogoIcon from '@/components/AppLogoIcon.vue';
-import Breadcrumbs from '@/components/Breadcrumbs.vue';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-    NavigationMenu,
-    NavigationMenuItem,
-    NavigationMenuList,
-    navigationMenuTriggerStyle,
-} from '@/components/ui/navigation-menu';
-import {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
-    SheetTrigger,
-} from '@/components/ui/sheet';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
-import UserMenuContent from '@/components/UserMenuContent.vue';
-import { useCurrentUrl } from '@/composables/useCurrentUrl';
-import { getInitials } from '@/composables/useInitials';
-import { toUrl } from '@/lib/utils';
-import type { BreadcrumbItem, NavItem } from '@/types';
-import { dashboard } from '@/routes';
+    import { Link, usePage } from '@inertiajs/vue3'
+    import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-vue-next'
+    import { computed } from 'vue'
+    import AppLogo from '@/components/AppLogo.vue'
+    import AppLogoIcon from '@/components/AppLogoIcon.vue'
+    import Breadcrumbs from '@/components/Breadcrumbs.vue'
+    import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+    import { Button } from '@/components/ui/button'
+    import {
+        DropdownMenu,
+        DropdownMenuContent,
+        DropdownMenuTrigger,
+    } from '@/components/ui/dropdown-menu'
+    import {
+        NavigationMenu,
+        NavigationMenuItem,
+        NavigationMenuList,
+        navigationMenuTriggerStyle,
+    } from '@/components/ui/navigation-menu'
+    import {
+        Sheet,
+        SheetContent,
+        SheetHeader,
+        SheetTitle,
+        SheetTrigger,
+    } from '@/components/ui/sheet'
+    import {
+        Tooltip,
+        TooltipContent,
+        TooltipProvider,
+        TooltipTrigger,
+    } from '@/components/ui/tooltip'
+    import UserMenuContent from '@/components/UserMenuContent.vue'
+    import { useCurrentUrl } from '@/composables/useCurrentUrl'
+    import { getInitials } from '@/composables/useInitials'
+    import { toUrl } from '@/lib/utils'
+    import { dashboard } from '@/routes'
+    import type { BreadcrumbItem, NavItem } from '@/types'
 
-type Props = {
-    breadcrumbs?: BreadcrumbItem[];
-};
+    type Props = {
+        breadcrumbs?: BreadcrumbItem[]
+    }
 
-const props = withDefaults(defineProps<Props>(), {
-    breadcrumbs: () => [],
-});
+    const props = withDefaults(defineProps<Props>(), {
+        breadcrumbs: () => [],
+    })
 
-const page = usePage();
-const auth = computed(() => page.props.auth);
-const { isCurrentUrl, whenCurrentUrl } = useCurrentUrl();
+    const page = usePage()
+    const auth = computed(() => page.props.auth)
+    const { isCurrentUrl, whenCurrentUrl } = useCurrentUrl()
 
-const activeItemStyles =
-    'text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100';
+    const activeItemStyles =
+        'text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100'
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-];
+    const mainNavItems: NavItem[] = [
+        {
+            title: 'Dashboard',
+            href: dashboard(),
+            icon: LayoutGrid,
+        },
+    ]
 
-const rightNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/vue-starter-kit',
-        icon: Folder,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#vue',
-        icon: BookOpen,
-    },
-];
+    const rightNavItems: NavItem[] = [
+        {
+            title: 'Repository',
+            href: 'https://github.com/laravel/vue-starter-kit',
+            icon: Folder,
+        },
+        {
+            title: 'Documentation',
+            href: 'https://laravel.com/docs/starter-kits#vue',
+            icon: BookOpen,
+        },
+    ]
 </script>
 
 <template>
@@ -91,7 +91,10 @@ const rightNavItems: NavItem[] = [
                                 <Menu class="h-5 w-5" />
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" class="w-[300px] p-6">
+                        <SheetContent
+                            side="left"
+                            class="w-[300px] p-6"
+                        >
                             <SheetTitle class="sr-only"
                                 >Navigation Menu</SheetTitle
                             >
@@ -146,7 +149,10 @@ const rightNavItems: NavItem[] = [
                     </Sheet>
                 </div>
 
-                <Link :href="dashboard()" class="flex items-center gap-x-2">
+                <Link
+                    :href="dashboard()"
+                    class="flex items-center gap-x-2"
+                >
                     <AppLogo />
                 </Link>
 
@@ -261,7 +267,10 @@ const rightNavItems: NavItem[] = [
                                 </Avatar>
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" class="w-56">
+                        <DropdownMenuContent
+                            align="end"
+                            class="w-56"
+                        >
                             <UserMenuContent :user="auth.user" />
                         </DropdownMenuContent>
                     </DropdownMenu>
