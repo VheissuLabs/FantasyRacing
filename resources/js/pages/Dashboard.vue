@@ -1,16 +1,56 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
-import PlaceholderPattern from '../components/PlaceholderPattern.vue';
-import { dashboard } from '@/routes';
+    import { Head, Link } from '@inertiajs/vue3'
+    import { show as leagueShow } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
+    import AppLayout from '@/layouts/AppLayout.vue'
+    import { dashboard } from '@/routes'
+    import { type BreadcrumbItem } from '@/types'
+    import PlaceholderPattern from '../components/PlaceholderPattern.vue'
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard().url,
-    },
-];
+    interface NextEvent {
+        id: number
+        name: string
+        type: string
+        scheduled_at: string
+        scheduled_at_human: string
+        scheduled_at_local: string
+        round: number
+        track: {
+            id: number
+            name: string
+        } | null
+    }
+
+    function eventTypeLabel(type: string): string {
+        return (
+            {
+                race: 'Race',
+                qualifying: 'Qualifying',
+                sprint: 'Sprint',
+                sprint_qualifying: 'Sprint Qualifying',
+            }[type] ?? type
+        )
+    }
+
+    interface League {
+        id: number
+        name: string
+        slug: string
+        members_count: number
+        fantasy_team_name: string | null
+        franchise: { id: number; name: string }
+    }
+
+    defineProps<{
+        nextEvent: NextEvent | null
+        leagues: League[]
+    }>()
+
+    const breadcrumbs: BreadcrumbItem[] = [
+        {
+            title: 'Dashboard',
+            href: dashboard().url,
+        },
+    ]
 </script>
 
 <template>
@@ -22,9 +62,36 @@ const breadcrumbs: BreadcrumbItem[] = [
         >
             <div class="grid auto-rows-min gap-4 md:grid-cols-3">
                 <div
-                    class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
+                    class="relative overflow-hidden rounded-xl border border-sidebar-border/70 p-6 dark:border-sidebar-border"
                 >
-                    <PlaceholderPattern />
+                    <template v-if="nextEvent">
+                        <p
+                            class="text-muted-foreground text-sm font-medium"
+                        >
+                            Round {{ nextEvent.round }} ·
+                            {{ eventTypeLabel(nextEvent.type) }}
+                        </p>
+                        <h2 class="mt-1 text-lg font-semibold">
+                            {{ nextEvent.name }}
+                        </h2>
+                        <p
+                            v-if="nextEvent.track"
+                            class="text-muted-foreground mt-0.5 text-sm"
+                        >
+                            {{ nextEvent.track.name }}
+                        </p>
+                        <p class="text-muted-foreground mt-0.5 text-xs">
+                            {{ nextEvent.scheduled_at_local }}
+                        </p>
+                        <p class="mt-4 text-lg font-semibold">
+                            {{ nextEvent.scheduled_at_human }}
+                        </p>
+                    </template>
+                    <template v-else>
+                        <p class="text-muted-foreground text-sm">
+                            No upcoming races scheduled
+                        </p>
+                    </template>
                 </div>
                 <div
                     class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
@@ -37,10 +104,48 @@ const breadcrumbs: BreadcrumbItem[] = [
                     <PlaceholderPattern />
                 </div>
             </div>
+            <!-- My Leagues -->
             <div
-                class="relative min-h-[100vh] flex-1 rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border"
+                class="rounded-xl border border-sidebar-border/70 p-6 dark:border-sidebar-border"
             >
-                <PlaceholderPattern />
+                <h2 class="mb-4 text-sm font-medium text-muted-foreground">
+                    My Leagues
+                </h2>
+                <div
+                    v-if="leagues.length"
+                    class="divide-y"
+                >
+                    <Link
+                        v-for="league in leagues"
+                        :key="league.id"
+                        :href="leagueShow({ league: league.slug }).url"
+                        class="flex items-center justify-between py-3 transition hover:opacity-75"
+                    >
+                        <div>
+                            <p class="font-medium">{{ league.name }}</p>
+                            <p class="text-xs text-muted-foreground">
+                                {{ league.franchise.name }}
+                                <span v-if="league.fantasy_team_name">
+                                    · {{ league.fantasy_team_name }}
+                                </span>
+                            </p>
+                        </div>
+                        <span class="text-xs text-muted-foreground">
+                            {{ league.members_count }}
+                            {{
+                                league.members_count === 1
+                                    ? 'member'
+                                    : 'members'
+                            }}
+                        </span>
+                    </Link>
+                </div>
+                <p
+                    v-else
+                    class="text-sm text-muted-foreground"
+                >
+                    You haven't joined any leagues yet.
+                </p>
             </div>
         </div>
     </AppLayout>

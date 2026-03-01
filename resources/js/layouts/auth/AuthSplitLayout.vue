@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { Link, usePage } from '@inertiajs/vue3';
-import AppLogoIcon from '@/components/AppLogoIcon.vue';
-import { home } from '@/routes';
+    import { Link, usePage } from '@inertiajs/vue3'
+    import AppLogoIcon from '@/components/AppLogoIcon.vue'
+    import { home } from '@/routes'
 
-const page = usePage();
-const name = page.props.name;
+    const page = usePage()
+    const name = page.props.name
 
-defineProps<{
-    title?: string;
-    description?: string;
-}>();
+    defineProps<{
+        title?: string
+        description?: string
+    }>()
 </script>
 
 <template>
@@ -33,10 +33,16 @@ defineProps<{
                 class="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]"
             >
                 <div class="flex flex-col space-y-2 text-center">
-                    <h1 class="text-xl font-medium tracking-tight" v-if="title">
+                    <h1
+                        class="text-xl font-medium tracking-tight"
+                        v-if="title"
+                    >
                         {{ title }}
                     </h1>
-                    <p class="text-sm text-muted-foreground" v-if="description">
+                    <p
+                        class="text-sm text-muted-foreground"
+                        v-if="description"
+                    >
                         {{ description }}
                     </p>
                 </div>

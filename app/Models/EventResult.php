@@ -1,0 +1,68 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class EventResult extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'event_id',
+        'driver_id',
+        'constructor_id',
+        'finish_position',
+        'grid_position',
+        'status',
+        'fastest_lap',
+        'driver_of_the_day',
+        'overtakes_made',
+        'q1_time',
+        'q2_time',
+        'q3_time',
+        'teammate_outqualified',
+        'points_eligible',
+        'data_source',
+        'notes',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'fastest_lap' => 'boolean',
+            'driver_of_the_day' => 'boolean',
+            'points_eligible' => 'boolean',
+            'q1_time' => 'datetime:H:i:s',
+            'q2_time' => 'datetime:H:i:s',
+            'q3_time' => 'datetime:H:i:s',
+        ];
+    }
+
+    public function event(): BelongsTo
+    {
+        return $this->belongsTo(Event::class);
+    }
+
+    public function driver(): BelongsTo
+    {
+        return $this->belongsTo(Driver::class);
+    }
+
+    public function constructor(): BelongsTo
+    {
+        return $this->belongsTo(Constructor::class);
+    }
+
+    public function isClassified(): bool
+    {
+        return $this->status === 'classified';
+    }
+
+    public function hasPenalty(): bool
+    {
+        return in_array($this->status, ['dnf', 'dns', 'dsq']);
+    }
+}

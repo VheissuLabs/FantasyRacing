@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
-import { ref } from 'vue';
-import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
-import AuthLayout from '@/layouts/AuthLayout.vue';
-import { update } from '@/routes/password';
+    import { Form, Head } from '@inertiajs/vue3'
+    import { ref } from 'vue'
+    import InputError from '@/components/InputError.vue'
+    import { Button } from '@/components/ui/button'
+    import { Input } from '@/components/ui/input'
+    import { Label } from '@/components/ui/label'
+    import { Spinner } from '@/components/ui/spinner'
+    import AuthLayout from '@/layouts/AuthLayout.vue'
+    import { update } from '@/routes/password'
 
-const props = defineProps<{
-    token: string;
-    email: string;
-}>();
+    const props = defineProps<{
+        token: string
+        email: string
+    }>()
 
-const inputEmail = ref(props.email);
+    const inputEmail = ref(props.email)
 </script>
 
 <template>
@@ -42,7 +42,10 @@ const inputEmail = ref(props.email);
                         class="mt-1 block w-full"
                         readonly
                     />
-                    <InputError :message="errors.email" class="mt-2" />
+                    <InputError
+                        :message="errors.email"
+                        class="mt-2"
+                    />
                 </div>
 
                 <div class="grid gap-2">

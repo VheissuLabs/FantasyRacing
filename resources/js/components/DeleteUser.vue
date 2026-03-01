@@ -1,24 +1,24 @@
 <script setup lang="ts">
-import { Form } from '@inertiajs/vue3';
-import { useTemplateRef } from 'vue';
-import Heading from '@/components/Heading.vue';
-import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
+    import { Form } from '@inertiajs/vue3'
+    import { useTemplateRef } from 'vue'
+    import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController'
+    import Heading from '@/components/Heading.vue'
+    import InputError from '@/components/InputError.vue'
+    import { Button } from '@/components/ui/button'
+    import {
+        Dialog,
+        DialogClose,
+        DialogContent,
+        DialogDescription,
+        DialogFooter,
+        DialogHeader,
+        DialogTitle,
+        DialogTrigger,
+    } from '@/components/ui/dialog'
+    import { Input } from '@/components/ui/input'
+    import { Label } from '@/components/ui/label'
 
-const passwordInput = useTemplateRef('passwordInput');
+    const passwordInput = useTemplateRef('passwordInput')
 </script>
 
 <template>
@@ -39,7 +39,9 @@ const passwordInput = useTemplateRef('passwordInput');
             </div>
             <Dialog>
                 <DialogTrigger as-child>
-                    <Button variant="destructive" data-test="delete-user-button"
+                    <Button
+                        variant="destructive"
+                        data-test="delete-user-button"
                         >Delete account</Button
                     >
                 </DialogTrigger>
@@ -69,7 +71,9 @@ const passwordInput = useTemplateRef('passwordInput');
                         </DialogHeader>
 
                         <div class="grid gap-2">
-                            <Label for="password" class="sr-only"
+                            <Label
+                                for="password"
+                                class="sr-only"
                                 >Password</Label
                             >
                             <Input
@@ -88,8 +92,8 @@ const passwordInput = useTemplateRef('passwordInput');
                                     variant="secondary"
                                     @click="
                                         () => {
-                                            clearErrors();
-                                            reset();
+                                            clearErrors()
+                                            reset()
                                         }
                                     "
                                 >
