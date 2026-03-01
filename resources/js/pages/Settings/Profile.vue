@@ -7,9 +7,9 @@
     import { Input } from '@/components/ui/input'
     import { Label } from '@/components/ui/label'
     import AppLayout from '@/layouts/AppLayout.vue'
+    import SettingsLayout from '@/layouts/Settings/Layout.vue'
     import { type BreadcrumbItem } from '@/types'
     import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController'
-    import SettingsLayout from '@/layouts/Settings/Layout.vue'
     import { edit } from '@/routes/profile'
     import { send } from '@/routes/verification'
 
