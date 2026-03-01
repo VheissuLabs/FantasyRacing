@@ -26,7 +26,10 @@
       "mcp__laravel-boost__read-log-entries",
       "Bash(npm install:*)",
       "Bash(npx vue-tsc:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git pull:*)",
+      "Bash(git add:*)",
+      "Bash(git ls-tree:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
