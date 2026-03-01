@@ -1,10 +1,10 @@
 <script setup lang="ts">
     import { Head, Link } from '@inertiajs/vue3'
-    import { show as leagueShow } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
     import AppLayout from '@/layouts/AppLayout.vue'
-    import { dashboard } from '@/routes'
     import { type BreadcrumbItem } from '@/types'
     import PlaceholderPattern from '../components/PlaceholderPattern.vue'
+    import { show as leagueShow } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
+    import { dashboard } from '@/routes'
 
     interface NextEvent {
         id: number
@@ -65,9 +65,7 @@
                     class="relative overflow-hidden rounded-xl border border-sidebar-border/70 p-6 dark:border-sidebar-border"
                 >
                     <template v-if="nextEvent">
-                        <p
-                            class="text-muted-foreground text-sm font-medium"
-                        >
+                        <p class="text-sm font-medium text-muted-foreground">
                             Round {{ nextEvent.round }} ·
                             {{ eventTypeLabel(nextEvent.type) }}
                         </p>
@@ -76,11 +74,11 @@
                         </h2>
                         <p
                             v-if="nextEvent.track"
-                            class="text-muted-foreground mt-0.5 text-sm"
+                            class="mt-0.5 text-sm text-muted-foreground"
                         >
                             {{ nextEvent.track.name }}
                         </p>
-                        <p class="text-muted-foreground mt-0.5 text-xs">
+                        <p class="mt-0.5 text-xs text-muted-foreground">
                             {{ nextEvent.scheduled_at_local }}
                         </p>
                         <p class="mt-4 text-lg font-semibold">
@@ -88,7 +86,7 @@
                         </p>
                     </template>
                     <template v-else>
-                        <p class="text-muted-foreground text-sm">
+                        <p class="text-sm text-muted-foreground">
                             No upcoming races scheduled
                         </p>
                     </template>

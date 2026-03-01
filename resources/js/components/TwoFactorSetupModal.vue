@@ -21,8 +21,8 @@
     import { Spinner } from '@/components/ui/spinner'
     import { useAppearance } from '@/composables/useAppearance'
     import { useTwoFactorAuth } from '@/composables/useTwoFactorAuth'
-    import { confirm } from '@/routes/two-factor'
     import type { TwoFactorConfigContent } from '@/types'
+    import { confirm } from '@/routes/two-factor'
 
     type Props = {
         requiresConfirmation: boolean
@@ -287,11 +287,7 @@
                                         />
                                     </InputOTPGroup>
                                 </InputOTP>
-                                <InputError
-                                    :message="
-                                        errors?.code
-                                    "
-                                />
+                                <InputError :message="errors?.code" />
                             </div>
 
                             <div class="flex w-full items-center space-x-5">
