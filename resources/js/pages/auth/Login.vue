@@ -116,7 +116,10 @@
                 v-if="canRegister"
             >
                 Don't have an account?
-                <TextLink :href="register()" :tabindex="5">
+                <TextLink
+                    :href="register()"
+                    :tabindex="5"
+                >
                     Sign up
                 </TextLink>
             </div>

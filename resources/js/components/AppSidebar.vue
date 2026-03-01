@@ -8,9 +8,6 @@
         Trophy,
         Users,
     } from 'lucide-vue-next'
-    import { index as constructorsIndex } from '@/actions/App/Http/Controllers/ConstructorProfileController'
-    import { index as driversIndex } from '@/actions/App/Http/Controllers/DriverProfileController'
-    import { index as leaguesIndex } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
     import NavFooter from '@/components/NavFooter.vue'
     import NavMain from '@/components/NavMain.vue'
     import NavUser from '@/components/NavUser.vue'
@@ -23,9 +20,12 @@
         SidebarMenuButton,
         SidebarMenuItem,
     } from '@/components/ui/sidebar'
-    import { dashboard, docs } from '@/routes'
     import { type NavItem } from '@/types'
     import AppLogo from './AppLogo.vue'
+    import { index as constructorsIndex } from '@/actions/App/Http/Controllers/ConstructorProfileController'
+    import { index as driversIndex } from '@/actions/App/Http/Controllers/DriverProfileController'
+    import { index as leaguesIndex } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
+    import { dashboard, docs } from '@/routes'
 
     const mainNavItems: NavItem[] = [
         {
