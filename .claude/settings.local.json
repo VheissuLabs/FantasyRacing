@@ -25,7 +25,8 @@
       "mcp__herd__stop_debug_session",
       "mcp__laravel-boost__read-log-entries",
       "Bash(npm install:*)",
-      "Bash(npx vue-tsc:*)"
+      "Bash(npx vue-tsc:*)",
+      "Bash(git commit:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
