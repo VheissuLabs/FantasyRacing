@@ -1,10 +1,5 @@
 <script setup lang="ts">
     import { Head, Link, router } from '@inertiajs/vue3'
-    import {
-        index as driversIndex,
-        show as driverShow,
-        season as driverSeason,
-    } from '@/actions/App/Http/Controllers/DriverProfileController'
     import { Badge } from '@/components/ui/badge'
     import {
         Card,
@@ -14,6 +9,11 @@
     } from '@/components/ui/card'
     import AppLayout from '@/layouts/AppLayout.vue'
     import { type BreadcrumbItem } from '@/types'
+    import {
+        index as driversIndex,
+        show as driverShow,
+        season as driverSeason,
+    } from '@/actions/App/Http/Controllers/DriverProfileController'
 
     interface Country {
         id: number
@@ -126,7 +126,10 @@
             router.get(driverShow({ driver: props.driver.slug }).url)
         } else {
             router.get(
-                driverSeason({ driver: props.driver.slug, season: Number(value) }).url,
+                driverSeason({
+                    driver: props.driver.slug,
+                    season: Number(value),
+                }).url,
             )
         }
     }

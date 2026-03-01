@@ -1,13 +1,13 @@
 <script setup lang="ts">
     import { Head, useForm } from '@inertiajs/vue3'
+    import AppLayout from '@/layouts/AppLayout.vue'
+    import SettingsForm from '@/pages/Leagues/Settings/Forms/SettingsForm.vue'
+    import { type BreadcrumbItem } from '@/types'
     import {
         index as leaguesIndex,
         show as leagueShow,
     } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
     import { update as settingsUpdate } from '@/actions/App/Http/Controllers/Leagues/LeagueSettingsController'
-    import AppLayout from '@/layouts/AppLayout.vue'
-    import SettingsForm from '@/pages/Leagues/Settings/Forms/SettingsForm.vue'
-    import { type BreadcrumbItem } from '@/types'
 
     interface Franchise {
         id: number
@@ -59,8 +59,9 @@
             trade_approval_required:
                 props.league.rules?.trade_approval_required ?? true,
             trades_enabled: props.league.rules?.trades_enabled ?? true,
-            max_roster_size: (props.league.rules?.max_roster_size ??
-                '') as string | number,
+            max_roster_size: (props.league.rules?.max_roster_size ?? '') as
+                | string
+                | number,
         },
     })
 

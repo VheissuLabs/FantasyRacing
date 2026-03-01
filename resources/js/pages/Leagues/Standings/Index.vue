@@ -1,10 +1,10 @@
 <script setup lang="ts">
     import { Head, Link } from '@inertiajs/vue3'
-    import { show as teamShow } from '@/actions/App/Http/Controllers/Leagues/FantasyTeamController'
-    import { show as leagueShow } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
     import { Card, CardContent } from '@/components/ui/card'
     import AppLayout from '@/layouts/AppLayout.vue'
     import { type BreadcrumbItem } from '@/types'
+    import { show as teamShow } from '@/actions/App/Http/Controllers/Leagues/FantasyTeamController'
+    import { show as leagueShow } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
 
     interface StandingEntry {
         id: number
