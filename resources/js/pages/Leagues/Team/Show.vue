@@ -1,11 +1,6 @@
 <script setup lang="ts">
     import { Head, Form } from '@inertiajs/vue3'
     import { ref } from 'vue'
-    import {
-        swapRoster,
-        pickupFreeAgent,
-    } from '@/actions/App/Http/Controllers/Leagues/FantasyTeamController'
-    import { show as leagueShow } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
     import { Button } from '@/components/ui/button'
     import {
         Card,
@@ -16,6 +11,11 @@
     import { Label } from '@/components/ui/label'
     import AppLayout from '@/layouts/AppLayout.vue'
     import { type BreadcrumbItem } from '@/types'
+    import {
+        swapRoster,
+        pickupFreeAgent,
+    } from '@/actions/App/Http/Controllers/Leagues/FantasyTeamController'
+    import { show as leagueShow } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
 
     interface Entity {
         id: number
@@ -86,7 +86,9 @@
             (entry) => entry.entity_type === 'driver' && !entry.in_seat,
         ) ?? null
     const constructor =
-        props.team.roster.find((entry) => entry.entity_type === 'constructor') ?? null
+        props.team.roster.find(
+            (entry) => entry.entity_type === 'constructor',
+        ) ?? null
 
     // Swap form state
     const swapBenchId = ref<number | null>(null)
@@ -99,7 +101,6 @@
 
     const availableFreeAgents = (type: 'driver' | 'constructor') =>
         props.freeAgents.filter((fa) => fa.entity_type === type)
-
 </script>
 
 <template>
