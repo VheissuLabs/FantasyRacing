@@ -3,8 +3,8 @@
     import AppearanceTabs from '@/components/AppearanceTabs.vue'
     import Heading from '@/components/Heading.vue'
     import AppLayout from '@/layouts/AppLayout.vue'
-    import { type BreadcrumbItem } from '@/types'
     import SettingsLayout from '@/layouts/Settings/Layout.vue'
+    import { type BreadcrumbItem } from '@/types'
     import { edit } from '@/routes/appearance'
 
     const breadcrumbItems: BreadcrumbItem[] = [
