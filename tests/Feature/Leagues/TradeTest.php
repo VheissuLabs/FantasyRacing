@@ -44,8 +44,8 @@ function createTradeScenario(array $rules = []): array
     $user2 = User::factory()->create();
     LeagueMember::create(['league_id' => $league->id, 'user_id' => $user2->id, 'role' => 'member', 'joined_at' => now()]);
 
-    $team1 = FantasyTeam::factory()->create(['league_id' => $league->id, 'user_id' => $commissioner->id]);
-    $team2 = FantasyTeam::factory()->create(['league_id' => $league->id, 'user_id' => $user2->id]);
+    $team1 = FantasyTeam::where('league_id', $league->id)->where('user_id', $commissioner->id)->first();
+    $team2 = FantasyTeam::where('league_id', $league->id)->where('user_id', $user2->id)->first();
 
     $constructors = [];
     $drivers = [];
@@ -569,23 +569,25 @@ test('trade index page renders for authenticated user with a team', function () 
         );
 });
 
-test('trade index page shows myTeam as null for member without a team', function () {
+test('trade index page shows auto-created myTeam for new member', function () {
     $scenario = createTradeScenario();
 
-    $memberWithoutTeam = User::factory()->create();
+    $newMember = User::factory()->create();
     LeagueMember::create([
         'league_id' => $scenario['league']->id,
-        'user_id' => $memberWithoutTeam->id,
+        'user_id' => $newMember->id,
         'role' => 'member',
         'joined_at' => now(),
     ]);
 
-    $this->actingAs($memberWithoutTeam)
+    $autoTeam = FantasyTeam::where('league_id', $scenario['league']->id)->where('user_id', $newMember->id)->first();
+
+    $this->actingAs($newMember)
         ->get(route('leagues.trades.index', $scenario['league']->slug))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('Leagues/Trades/Index')
-            ->where('myTeam', null)
+            ->where('myTeam.id', $autoTeam->id)
             ->where('isCommissioner', false)
         );
 });
@@ -616,20 +618,27 @@ test('trade create page renders with correct props', function () {
         );
 });
 
-test('trade create page returns 404 for user without a team', function () {
+test('trade create page renders for new member with auto-created team', function () {
     $scenario = createTradeScenario();
 
-    $memberWithoutTeam = User::factory()->create();
+    $newMember = User::factory()->create();
     LeagueMember::create([
         'league_id' => $scenario['league']->id,
-        'user_id' => $memberWithoutTeam->id,
+        'user_id' => $newMember->id,
         'role' => 'member',
         'joined_at' => now(),
     ]);
 
-    $this->actingAs($memberWithoutTeam)
+    $autoTeam = FantasyTeam::where('league_id', $scenario['league']->id)->where('user_id', $newMember->id)->first();
+
+    $this->actingAs($newMember)
         ->get(route('leagues.trades.create', $scenario['league']->slug))
-        ->assertNotFound();
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Leagues/Trades/Create')
+            ->has('league')
+            ->where('myTeam.id', $autoTeam->id)
+        );
 });
 
 // ============================================================================

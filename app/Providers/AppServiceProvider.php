@@ -4,8 +4,6 @@ namespace App\Providers;
 
 use App\Models\Constructor;
 use App\Models\Driver;
-use App\Models\Event;
-use App\Observers\EventObserver;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Date;
@@ -30,12 +28,6 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configureMorphMap();
-        $this->registerObservers();
-    }
-
-    protected function registerObservers(): void
-    {
-        Event::observe(EventObserver::class);
     }
 
     protected function configureMorphMap(): void

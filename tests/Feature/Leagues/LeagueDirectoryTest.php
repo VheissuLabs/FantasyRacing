@@ -2,6 +2,7 @@
 
 use App\Models\Franchise;
 use App\Models\League;
+use App\Models\LeagueMember;
 use App\Models\Season;
 use App\Models\User;
 
@@ -11,7 +12,7 @@ test('league index renders', function () {
     );
 });
 
-test('open leagues appear in the directory', function () {
+test('public leagues appear in the directory', function () {
     $franchise = Franchise::factory()->create();
     $season = Season::factory()->create(['franchise_id' => $franchise->id]);
     $commissioner = User::factory()->create();
@@ -32,7 +33,7 @@ test('open leagues appear in the directory', function () {
         );
 });
 
-test('closed leagues do not appear in the directory', function () {
+test('private leagues do not appear in the directory for guests', function () {
     $franchise = Franchise::factory()->create();
     $season = Season::factory()->create(['franchise_id' => $franchise->id]);
     $commissioner = User::factory()->create();
@@ -53,7 +54,57 @@ test('closed leagues do not appear in the directory', function () {
         );
 });
 
-test('guests can view open league detail', function () {
+test('private leagues do not appear for non-members', function () {
+    $franchise = Franchise::factory()->create();
+    $season = Season::factory()->create(['franchise_id' => $franchise->id]);
+    $commissioner = User::factory()->create();
+
+    League::factory()->create([
+        'franchise_id' => $franchise->id,
+        'season_id' => $season->id,
+        'commissioner_id' => $commissioner->id,
+        'visibility' => 'private',
+        'is_active' => true,
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('leagues.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Leagues/Index')
+            ->has('leagues.data', 0)
+        );
+});
+
+test('private leagues appear in the directory for members', function () {
+    $franchise = Franchise::factory()->create();
+    $season = Season::factory()->create(['franchise_id' => $franchise->id]);
+    $member = User::factory()->create();
+
+    $league = League::factory()->create([
+        'franchise_id' => $franchise->id,
+        'season_id' => $season->id,
+        'commissioner_id' => User::factory()->create()->id,
+        'visibility' => 'private',
+        'is_active' => true,
+    ]);
+
+    LeagueMember::factory()->create([
+        'league_id' => $league->id,
+        'user_id' => $member->id,
+    ]);
+
+    $this->actingAs($member)
+        ->get(route('leagues.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Leagues/Index')
+            ->has('leagues.data', 1)
+            ->where('leagues.data.0.id', $league->id)
+        );
+});
+
+test('guests can view public league detail', function () {
     $franchise = Franchise::factory()->create();
     $season = Season::factory()->create(['franchise_id' => $franchise->id]);
     $commissioner = User::factory()->create();
@@ -68,7 +119,7 @@ test('guests can view open league detail', function () {
     $this->get(route('leagues.show', $league->slug))->assertOk();
 });
 
-test('guests are forbidden from closed league detail', function () {
+test('guests are forbidden from private league detail', function () {
     $franchise = Franchise::factory()->create();
     $season = Season::factory()->create(['franchise_id' => $franchise->id]);
     $commissioner = User::factory()->create();
@@ -83,7 +134,7 @@ test('guests are forbidden from closed league detail', function () {
     $this->get(route('leagues.show', $league->slug))->assertForbidden();
 });
 
-test('authenticated users can view closed league detail', function () {
+test('authenticated users can view private league detail', function () {
     $franchise = Franchise::factory()->create();
     $season = Season::factory()->create(['franchise_id' => $franchise->id]);
     $commissioner = User::factory()->create();

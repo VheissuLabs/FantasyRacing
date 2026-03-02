@@ -42,10 +42,7 @@ function createPointsScenario(): array
 
     LeagueMember::create(['league_id' => $league->id, 'user_id' => $commissioner->id, 'role' => 'commissioner', 'joined_at' => now()]);
 
-    $team = FantasyTeam::factory()->create([
-        'league_id' => $league->id,
-        'user_id' => $commissioner->id,
-    ]);
+    $team = FantasyTeam::where('league_id', $league->id)->where('user_id', $commissioner->id)->first();
 
     // Create constructors and drivers
     $constructors = [];
@@ -987,7 +984,7 @@ test('calculateForEvent processes all teams across all leagues for the season', 
     // Create a second team in the same league
     $user2 = User::factory()->create();
     LeagueMember::create(['league_id' => $scenario['league']->id, 'user_id' => $user2->id, 'role' => 'member', 'joined_at' => now()]);
-    $team2 = FantasyTeam::factory()->create(['league_id' => $scenario['league']->id, 'user_id' => $user2->id]);
+    $team2 = FantasyTeam::where('league_id', $scenario['league']->id)->where('user_id', $user2->id)->first();
     FantasyTeamRoster::create(['fantasy_team_id' => $team2->id, 'entity_type' => 'driver', 'entity_id' => $scenario['drivers'][2]->id, 'in_seat' => true, 'acquired_at' => now()]);
     FantasyTeamRoster::create(['fantasy_team_id' => $team2->id, 'entity_type' => 'constructor', 'entity_id' => $scenario['constructors'][1]->id, 'in_seat' => true, 'acquired_at' => now()]);
 

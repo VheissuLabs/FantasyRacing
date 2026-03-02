@@ -21,8 +21,11 @@ class LeagueDirectoryController extends Controller
         $joinPolicyFilter = $request->query('join_policy');
 
         $leagues = League::query()
-            ->where('visibility', 'public')
             ->where('is_active', true)
+            ->where(function ($query) {
+                $query->where('visibility', 'public')
+                    ->when(Auth::check(), fn ($query) => $query->orWhereHas('members', fn ($query) => $query->where('user_id', Auth::id())));
+            })
             ->with(['franchise', 'season', 'commissioner'])
             ->withCount('members')
             ->when($franchiseFilter, fn ($query) => $query->whereHas('franchise', fn ($query) => $query->where('slug', $franchiseFilter)))
