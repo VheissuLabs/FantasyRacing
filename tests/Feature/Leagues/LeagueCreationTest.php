@@ -70,3 +70,23 @@ test('league creation validates required fields', function () {
         ->post(route('leagues.store'), [])
         ->assertSessionHasErrors(['franchise_id', 'name', 'visibility', 'join_policy']);
 });
+
+test('no_duplicates rule caps max_teams at 7', function () {
+    $franchise = Franchise::factory()->create();
+    Season::factory()->create(['franchise_id' => $franchise->id, 'is_active' => true]);
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('leagues.store'), [
+            'franchise_id' => $franchise->id,
+            'name' => 'No Dup League',
+            'visibility' => 'public',
+            'join_policy' => 'open',
+            'max_teams' => 20,
+            'rules' => ['no_duplicates' => true],
+        ])
+        ->assertRedirect();
+
+    $league = League::where('name', 'No Dup League')->first();
+    expect($league->max_teams)->toBe(7);
+});

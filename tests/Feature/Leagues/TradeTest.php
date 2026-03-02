@@ -548,3 +548,146 @@ test('free agent trade moves entity to/from free agent pool', function () {
     expect(FreeAgentPool::where('league_id', $scenario['league']->id)
         ->where('entity_id', $scenario['drivers'][0]->id)->exists())->toBeTrue();
 });
+
+// ============================================================================
+// TradeController@index
+// ============================================================================
+
+test('trade index page renders for authenticated user with a team', function () {
+    $scenario = createTradeScenario();
+
+    $this->actingAs($scenario['user1'])
+        ->get(route('leagues.trades.index', $scenario['league']->slug))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Leagues/Trades/Index')
+            ->has('league')
+            ->has('trades')
+            ->where('myTeam.id', $scenario['team1']->id)
+            ->where('isCommissioner', true)
+            ->has('tradeApprovalRequired')
+        );
+});
+
+test('trade index page shows myTeam as null for member without a team', function () {
+    $scenario = createTradeScenario();
+
+    $memberWithoutTeam = User::factory()->create();
+    LeagueMember::create([
+        'league_id' => $scenario['league']->id,
+        'user_id' => $memberWithoutTeam->id,
+        'role' => 'member',
+        'joined_at' => now(),
+    ]);
+
+    $this->actingAs($memberWithoutTeam)
+        ->get(route('leagues.trades.index', $scenario['league']->slug))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Leagues/Trades/Index')
+            ->where('myTeam', null)
+            ->where('isCommissioner', false)
+        );
+});
+
+test('trade index page requires authentication', function () {
+    $scenario = createTradeScenario();
+
+    $this->get(route('leagues.trades.index', $scenario['league']->slug))
+        ->assertRedirect(route('login'));
+});
+
+// ============================================================================
+// TradeController@create
+// ============================================================================
+
+test('trade create page renders with correct props', function () {
+    $scenario = createTradeScenario();
+
+    $this->actingAs($scenario['user1'])
+        ->get(route('leagues.trades.create', $scenario['league']->slug))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Leagues/Trades/Create')
+            ->has('league')
+            ->where('myTeam.id', $scenario['team1']->id)
+            ->has('otherTeams')
+            ->has('freeAgents')
+        );
+});
+
+test('trade create page returns 404 for user without a team', function () {
+    $scenario = createTradeScenario();
+
+    $memberWithoutTeam = User::factory()->create();
+    LeagueMember::create([
+        'league_id' => $scenario['league']->id,
+        'user_id' => $memberWithoutTeam->id,
+        'role' => 'member',
+        'joined_at' => now(),
+    ]);
+
+    $this->actingAs($memberWithoutTeam)
+        ->get(route('leagues.trades.create', $scenario['league']->slug))
+        ->assertNotFound();
+});
+
+// ============================================================================
+// TradeController@store
+// ============================================================================
+
+test('trade store via controller creates trade and redirects', function () {
+    Notification::fake();
+
+    $scenario = createTradeScenario();
+
+    $this->actingAs($scenario['user1'])
+        ->post(route('leagues.trades.store', $scenario['league']->slug), [
+            'receiver_team_id' => $scenario['team2']->id,
+            'giving' => [['entity_type' => 'driver', 'entity_id' => $scenario['drivers'][0]->id]],
+            'receiving' => [['entity_type' => 'driver', 'entity_id' => $scenario['drivers'][2]->id]],
+        ])
+        ->assertRedirect(route('leagues.trades.index', $scenario['league']->slug))
+        ->assertSessionHas('success', 'Trade proposal submitted.');
+
+    expect(Trade::where('league_id', $scenario['league']->id)
+        ->where('initiator_team_id', $scenario['team1']->id)
+        ->where('receiver_team_id', $scenario['team2']->id)
+        ->exists())->toBeTrue();
+});
+
+test('trade store with null receiver_team_id for free agent trade', function () {
+    Notification::fake();
+
+    $scenario = createTradeScenario(['trade_approval_required' => false]);
+
+    $freeDriver = Driver::create([
+        'franchise_id' => $scenario['franchise']->id,
+        'name' => 'Free Agent Store Driver',
+        'slug' => 'free-agent-store-driver-'.uniqid(),
+        'is_active' => true,
+    ]);
+
+    FreeAgentPool::create([
+        'league_id' => $scenario['league']->id,
+        'entity_type' => 'driver',
+        'entity_id' => $freeDriver->id,
+        'added_at' => now(),
+    ]);
+
+    $this->actingAs($scenario['user1'])
+        ->post(route('leagues.trades.store', $scenario['league']->slug), [
+            'receiver_team_id' => null,
+            'giving' => [['entity_type' => 'driver', 'entity_id' => $scenario['drivers'][0]->id]],
+            'receiving' => [['entity_type' => 'driver', 'entity_id' => $freeDriver->id]],
+        ])
+        ->assertRedirect(route('leagues.trades.index', $scenario['league']->slug))
+        ->assertSessionHas('success', 'Trade proposal submitted.');
+
+    // Free agent trade with no approval should complete immediately
+    expect(Trade::where('league_id', $scenario['league']->id)
+        ->where('initiator_team_id', $scenario['team1']->id)
+        ->whereNull('receiver_team_id')
+        ->where('status', 'completed')
+        ->exists())->toBeTrue();
+});

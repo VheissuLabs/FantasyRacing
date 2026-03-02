@@ -180,3 +180,69 @@ test('constructor profile shows season history', function () {
             ->where('seasonStats.0.season.name', '2025')
         );
 });
+
+test('constructors index page renders with correct component', function () {
+    Constructor::factory()->count(3)->create([
+        'franchise_id' => $this->franchise->id,
+        'is_active' => true,
+    ]);
+
+    $this->get(route('constructors.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Constructors/Index')
+            ->has('constructors.data', 3)
+            ->has('franchises')
+            ->has('filters')
+        );
+});
+
+test('constructors index only shows active constructors', function () {
+    Constructor::factory()->create([
+        'franchise_id' => $this->franchise->id,
+        'is_active' => true,
+    ]);
+
+    Constructor::factory()->create([
+        'franchise_id' => $this->franchise->id,
+        'is_active' => false,
+    ]);
+
+    $this->get(route('constructors.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('constructors.data', 1)
+        );
+});
+
+test('constructors index filters by franchise', function () {
+    $otherFranchise = Franchise::factory()->create();
+
+    Constructor::factory()->create([
+        'franchise_id' => $this->franchise->id,
+        'is_active' => true,
+    ]);
+
+    Constructor::factory()->create([
+        'franchise_id' => $otherFranchise->id,
+        'is_active' => true,
+    ]);
+
+    $this->get(route('constructors.index', ['franchise' => $this->franchise->slug]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('constructors.data', 1)
+            ->where('filters.franchise', $this->franchise->slug)
+        );
+});
+
+test('constructor show returns empty currentDrivers when no active season', function () {
+    $constructor = Constructor::factory()->create(['franchise_id' => $this->franchise->id]);
+
+    $this->get(route('constructors.show', $constructor->slug))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Constructors/Show')
+            ->where('currentDrivers', [])
+        );
+});

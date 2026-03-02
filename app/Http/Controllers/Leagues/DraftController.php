@@ -46,9 +46,7 @@ class DraftController extends Controller
                 ->get();
         }
 
-        $myTeam = auth()->user()
-            ? $league->fantasyTeams()->where('user_id', auth()->id())->first()
-            : null;
+        $myTeam = $league->fantasyTeams()->where('user_id', auth()->id())->first();
 
         $isCommissioner = $league->isCommissioner(auth()->user());
 
