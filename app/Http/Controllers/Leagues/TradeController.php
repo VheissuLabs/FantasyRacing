@@ -19,11 +19,9 @@ class TradeController extends Controller
         $league->load(['franchise', 'season', 'commissioner']);
 
         $viewer = auth()->user();
-        $isCommissioner = $viewer && $league->isCommissioner($viewer);
+        $isCommissioner = $league->isCommissioner($viewer);
 
-        $myTeam = $viewer
-            ? $league->fantasyTeams()->where('user_id', $viewer->id)->first()
-            : null;
+        $myTeam = $league->fantasyTeams()->where('user_id', $viewer->id)->first();
 
         $trades = $league->trades()
             ->with([

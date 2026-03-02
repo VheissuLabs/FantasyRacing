@@ -1,10 +1,12 @@
 <?php
 
+use App\Jobs\SendLeagueInviteEmail;
 use App\Models\Franchise;
 use App\Models\League;
 use App\Models\LeagueInvite;
 use App\Models\Season;
 use App\Models\User;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 
 function makeLeague(): League
@@ -152,4 +154,89 @@ test('league show page hides invites for non-commissioners', function () {
             ->where('isCommissioner', false)
             ->where('invites', [])
         );
+});
+
+test('commissioner can resend a pending invite', function () {
+    Queue::fake();
+
+    $league = makeLeague();
+    $invite = LeagueInvite::factory()->create([
+        'league_id' => $league->id,
+        'invited_by' => $league->commissioner_id,
+        'token' => Str::random(32),
+        'status' => 'pending',
+        'expires_at' => now()->subDay(),
+    ]);
+
+    $this->actingAs($league->commissioner)
+        ->post(route('leagues.invites.resend', [$league->slug, $invite->id]))
+        ->assertRedirect()
+        ->assertSessionHas('success', 'Invite resent.');
+
+    $invite->refresh();
+    expect($invite->expires_at->isFuture())->toBeTrue();
+
+    Queue::assertPushed(SendLeagueInviteEmail::class);
+});
+
+test('non-commissioner cannot resend an invite', function () {
+    $league = makeLeague();
+    $invite = LeagueInvite::factory()->create([
+        'league_id' => $league->id,
+        'invited_by' => $league->commissioner_id,
+        'token' => Str::random(32),
+        'status' => 'pending',
+        'expires_at' => now()->addDays(7),
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('leagues.invites.resend', [$league->slug, $invite->id]))
+        ->assertForbidden();
+});
+
+test('cannot resend a non-pending invite', function () {
+    $league = makeLeague();
+    $invite = LeagueInvite::factory()->create([
+        'league_id' => $league->id,
+        'invited_by' => $league->commissioner_id,
+        'token' => Str::random(32),
+        'status' => 'accepted',
+        'expires_at' => now()->addDays(7),
+    ]);
+
+    $this->actingAs($league->commissioner)
+        ->post(route('leagues.invites.resend', [$league->slug, $invite->id]))
+        ->assertStatus(422);
+});
+
+test('commissioner can destroy a pending invite', function () {
+    $league = makeLeague();
+    $invite = LeagueInvite::factory()->create([
+        'league_id' => $league->id,
+        'invited_by' => $league->commissioner_id,
+        'token' => Str::random(32),
+        'status' => 'pending',
+        'expires_at' => now()->addDays(7),
+    ]);
+
+    $this->actingAs($league->commissioner)
+        ->delete(route('leagues.invites.destroy', [$league->slug, $invite->id]))
+        ->assertRedirect();
+
+    expect($invite->fresh()->status)->toBe('expired');
+});
+
+test('non-commissioner cannot destroy an invite', function () {
+    $league = makeLeague();
+    $invite = LeagueInvite::factory()->create([
+        'league_id' => $league->id,
+        'invited_by' => $league->commissioner_id,
+        'token' => Str::random(32),
+        'status' => 'pending',
+        'expires_at' => now()->addDays(7),
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->delete(route('leagues.invites.destroy', [$league->slug, $invite->id]))
+        ->assertForbidden();
 });

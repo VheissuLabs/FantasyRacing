@@ -199,3 +199,74 @@ test('season page 404s when driver has no stats for that season', function () {
     $this->get(route('drivers.season', [$driver->slug, $season->id]))
         ->assertNotFound();
 });
+
+test('drivers index page renders with correct component', function () {
+    Driver::factory()->count(3)->create([
+        'franchise_id' => $this->franchise->id,
+        'country_id' => $this->country->id,
+        'is_active' => true,
+    ]);
+
+    $this->get(route('drivers.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Drivers/Index')
+            ->has('drivers.data', 3)
+            ->has('franchises')
+            ->has('filters')
+        );
+});
+
+test('drivers index only shows active drivers', function () {
+    Driver::factory()->create([
+        'franchise_id' => $this->franchise->id,
+        'country_id' => $this->country->id,
+        'is_active' => true,
+    ]);
+
+    Driver::factory()->create([
+        'franchise_id' => $this->franchise->id,
+        'country_id' => $this->country->id,
+        'is_active' => false,
+    ]);
+
+    $this->get(route('drivers.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('drivers.data', 1)
+        );
+});
+
+test('drivers index filters by franchise', function () {
+    $otherFranchise = Franchise::factory()->create();
+
+    Driver::factory()->create([
+        'franchise_id' => $this->franchise->id,
+        'country_id' => $this->country->id,
+        'is_active' => true,
+    ]);
+
+    Driver::factory()->create([
+        'franchise_id' => $otherFranchise->id,
+        'country_id' => $this->country->id,
+        'is_active' => true,
+    ]);
+
+    $this->get(route('drivers.index', ['franchise' => $this->franchise->slug]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('drivers.data', 1)
+            ->where('filters.franchise', $this->franchise->slug)
+        );
+});
+
+test('driver show returns null currentSeasonDriver when no active season', function () {
+    $driver = Driver::factory()->create(['franchise_id' => $this->franchise->id, 'country_id' => $this->country->id]);
+
+    $this->get(route('drivers.show', $driver->slug))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Drivers/Show')
+            ->where('currentSeasonDriver', null)
+        );
+});

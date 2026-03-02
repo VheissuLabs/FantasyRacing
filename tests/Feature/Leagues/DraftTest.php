@@ -612,3 +612,51 @@ test('scheduled date must be in the future', function () {
         ])
         ->assertSessionHasErrors('scheduled_at');
 });
+
+test('draft page shows myTeam as null for user without a team', function () {
+    $scenario = createDraftScenario();
+    $userWithoutTeam = User::factory()->create();
+
+    $this->actingAs($userWithoutTeam)
+        ->get(route('leagues.draft', $scenario['league']->slug))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Leagues/Draft/Show')
+            ->where('myTeam', null)
+            ->where('isCommissioner', false)
+        );
+});
+
+test('starting an already active draft redirects back without error', function () {
+    Queue::fake([ScheduleAutoPick::class]);
+
+    $scenario = createDraftScenario();
+    createReadyDraft($scenario, start: true);
+
+    $this->actingAs($scenario['commissioner'])
+        ->post(route('leagues.draft.start', $scenario['league']->slug))
+        ->assertRedirect()
+        ->assertSessionMissing('success');
+});
+
+test('pausing a non-active draft returns validation error', function () {
+    $scenario = createDraftScenario();
+    createReadyDraft($scenario); // pending, not started
+
+    $this->actingAs($scenario['commissioner'])
+        ->post(route('leagues.draft.pause', $scenario['league']->slug))
+        ->assertRedirect()
+        ->assertSessionHasErrors('draft');
+});
+
+test('resuming a non-paused draft returns validation error', function () {
+    Queue::fake([ScheduleAutoPick::class]);
+
+    $scenario = createDraftScenario();
+    createReadyDraft($scenario, start: true); // active, not paused
+
+    $this->actingAs($scenario['commissioner'])
+        ->post(route('leagues.draft.resume', $scenario['league']->slug))
+        ->assertRedirect()
+        ->assertSessionHasErrors('draft');
+});

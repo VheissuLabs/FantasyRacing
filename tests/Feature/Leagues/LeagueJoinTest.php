@@ -141,3 +141,103 @@ test('non-commissioner cannot approve a join request', function () {
         ->post(route('leagues.join-requests.approve', [$league->slug, $joinRequest->id]))
         ->assertForbidden();
 });
+
+test('user can cancel their own join request', function () {
+    $franchise = Franchise::factory()->create();
+    $season = Season::factory()->create(['franchise_id' => $franchise->id]);
+    $commissioner = User::factory()->create();
+
+    $league = League::factory()->create([
+        'franchise_id' => $franchise->id,
+        'season_id' => $season->id,
+        'commissioner_id' => $commissioner->id,
+        'join_policy' => 'request',
+    ]);
+
+    $user = User::factory()->create();
+    $joinRequest = $league->joinRequests()->create([
+        'user_id' => $user->id,
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($user)
+        ->delete(route('leagues.join-requests.destroy', [$league->slug, $joinRequest->id]))
+        ->assertRedirect(route('leagues.show', $league->slug));
+
+    $this->assertDatabaseMissing('league_join_requests', ['id' => $joinRequest->id]);
+});
+
+test('user cannot cancel another user join request', function () {
+    $franchise = Franchise::factory()->create();
+    $season = Season::factory()->create(['franchise_id' => $franchise->id]);
+    $commissioner = User::factory()->create();
+
+    $league = League::factory()->create([
+        'franchise_id' => $franchise->id,
+        'season_id' => $season->id,
+        'commissioner_id' => $commissioner->id,
+        'join_policy' => 'request',
+    ]);
+
+    $requester = User::factory()->create();
+    $joinRequest = $league->joinRequests()->create([
+        'user_id' => $requester->id,
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->delete(route('leagues.join-requests.destroy', [$league->slug, $joinRequest->id]))
+        ->assertForbidden();
+});
+
+test('commissioner can reject a join request', function () {
+    $franchise = Franchise::factory()->create();
+    $season = Season::factory()->create(['franchise_id' => $franchise->id]);
+    $commissioner = User::factory()->create();
+
+    $league = League::factory()->create([
+        'franchise_id' => $franchise->id,
+        'season_id' => $season->id,
+        'commissioner_id' => $commissioner->id,
+        'join_policy' => 'request',
+    ]);
+
+    $requester = User::factory()->create();
+    $joinRequest = $league->joinRequests()->create([
+        'user_id' => $requester->id,
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($commissioner)
+        ->post(route('leagues.join-requests.reject', [$league->slug, $joinRequest->id]))
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('league_join_requests', [
+        'id' => $joinRequest->id,
+        'status' => 'rejected',
+        'reviewed_by' => $commissioner->id,
+    ]);
+});
+
+test('non-commissioner cannot reject a join request', function () {
+    $franchise = Franchise::factory()->create();
+    $season = Season::factory()->create(['franchise_id' => $franchise->id]);
+    $commissioner = User::factory()->create();
+
+    $league = League::factory()->create([
+        'franchise_id' => $franchise->id,
+        'season_id' => $season->id,
+        'commissioner_id' => $commissioner->id,
+        'join_policy' => 'request',
+    ]);
+
+    $requester = User::factory()->create();
+    $joinRequest = $league->joinRequests()->create([
+        'user_id' => $requester->id,
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('leagues.join-requests.reject', [$league->slug, $joinRequest->id]))
+        ->assertForbidden();
+});
