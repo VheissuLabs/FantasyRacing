@@ -13,6 +13,3 @@ Schedule::command('invites:expire')->hourly();
 
 // Notify teams about drafts starting soon (runs every 15 minutes)
 Schedule::command('draft:notify-starting', ['--minutes' => 30])->everyFifteenMinutes();
-
-// Recalculate any completed events that are missing fantasy points (runs nightly)
-Schedule::command('points:calculate', ['--all-pending' => true])->dailyAt('03:00');
