@@ -96,15 +96,7 @@ test('end-to-end: create league, join, draft, lock event, calculate points, view
 
     expect($league->members()->count())->toBe(2);
 
-    // --- 4. Both users create fantasy teams ---
-    $this->actingAs($commissioner)
-        ->post(route('leagues.teams.store', $league->slug), ['name' => 'Speed Kings'])
-        ->assertRedirect();
-
-    $this->actingAs($user2)
-        ->post(route('leagues.teams.store', $league->slug), ['name' => 'Velocity Vipers'])
-        ->assertRedirect();
-
+    // --- 4. Fantasy teams are auto-created when users join ---
     $team1 = FantasyTeam::where('league_id', $league->id)->where('user_id', $commissioner->id)->firstOrFail();
     $team2 = FantasyTeam::where('league_id', $league->id)->where('user_id', $user2->id)->firstOrFail();
 

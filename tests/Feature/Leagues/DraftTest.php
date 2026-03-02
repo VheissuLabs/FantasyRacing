@@ -34,13 +34,13 @@ function createDraftScenario(int $teamCount = 2): array
 
     LeagueMember::create(['league_id' => $league->id, 'user_id' => $commissioner->id, 'role' => 'commissioner', 'joined_at' => now()]);
 
-    $teams = [FantasyTeam::factory()->create(['league_id' => $league->id, 'user_id' => $commissioner->id])];
+    $teams = [FantasyTeam::where('league_id', $league->id)->where('user_id', $commissioner->id)->first()];
     $users = [$commissioner];
 
     for ($i = 1; $i < $teamCount; $i++) {
         $user = User::factory()->create();
         LeagueMember::create(['league_id' => $league->id, 'user_id' => $user->id, 'role' => 'member', 'joined_at' => now()]);
-        $teams[] = FantasyTeam::factory()->create(['league_id' => $league->id, 'user_id' => $user->id]);
+        $teams[] = FantasyTeam::where('league_id', $league->id)->where('user_id', $user->id)->first();
         $users[] = $user;
     }
 

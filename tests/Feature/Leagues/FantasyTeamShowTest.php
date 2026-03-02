@@ -36,7 +36,7 @@ function createTeamScenario(): array
     $owner = User::factory()->create();
     LeagueMember::create(['league_id' => $league->id, 'user_id' => $owner->id, 'role' => 'member', 'joined_at' => now()]);
 
-    $team = FantasyTeam::factory()->create(['league_id' => $league->id, 'user_id' => $owner->id]);
+    $team = FantasyTeam::where('league_id', $league->id)->where('user_id', $owner->id)->first();
 
     $constructor = Constructor::create([
         'franchise_id' => $franchise->id,
