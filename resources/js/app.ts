@@ -34,5 +34,4 @@ router.on('before', (event) => {
         Intl.DateTimeFormat().resolvedOptions().timeZone
 })
 
-// This will set light / dark mode on page load...
 initializeTheme()
