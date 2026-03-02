@@ -28,6 +28,10 @@
             emoji: string | null
         } | null
         franchise: { id: number; name: string }
+        season_drivers: {
+            id: number
+            constructor: { id: number; name: string; slug: string }
+        }[]
     }
 
     interface Paginator<T> {
@@ -125,6 +129,12 @@
                                 >
                                     {{ driver.country.emoji }}
                                     {{ driver.country.nationality }}
+                                </p>
+                                <p
+                                    v-if="driver.season_drivers.length > 0"
+                                    class="text-xs text-muted-foreground"
+                                >
+                                    {{ driver.season_drivers[0].constructor.name }}
                                 </p>
                                 <p class="text-xs text-muted-foreground">
                                     {{ driver.franchise.name }}

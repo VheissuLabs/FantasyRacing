@@ -31,7 +31,7 @@
       "Bash(git add:*)",
       "Bash(git ls-tree:*)",
       "Bash(git config:*)",
-      "Bash(git push:*)"
+      "Bash(gh pr:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

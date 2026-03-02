@@ -17,7 +17,14 @@ class DriverProfileController extends Controller
 
         $drivers = Driver::query()
             ->where('is_active', true)
-            ->with(['country', 'franchise'])
+            ->with([
+                'country',
+                'franchise',
+                'seasonDrivers' => fn ($query) => $query
+                    ->whereNull('effective_to')
+                    ->whereHas('season', fn ($query) => $query->where('is_active', true))
+                    ->with('constructor:id,name,slug'),
+            ])
             ->when($franchiseFilter, fn ($query) => $query->whereHas('franchise', fn ($query) => $query->where('slug', $franchiseFilter)))
             ->orderBy('name')
             ->paginate(24)
