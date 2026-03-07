@@ -422,7 +422,9 @@ class SyncF1Results extends Command
             ->get()
             ->keyBy('number');
 
-        $this->syncDriverPhotos($event, $openF1, $driverMap);
+        $openF1Drivers = $openF1->getDrivers($event->openf1_session_key)->keyBy('driver_number');
+        $this->syncDriverPhotos($driverMap, $openF1Drivers);
+        $this->syncConstructorColours($driverMap, $openF1Drivers);
 
         match ($event->type) {
             'qualifying', 'sprint_qualifying' => $this->openF1SyncQualifying($event, $openF1, $driverMap),
@@ -659,7 +661,7 @@ class SyncF1Results extends Command
     // Shared helpers
     // ──────────────────────────────────────────────────────
 
-    protected function syncDriverPhotos(Event $event, OpenF1 $openF1, Collection $driverMap): void
+    protected function syncDriverPhotos(Collection $driverMap, Collection $openF1Drivers): void
     {
         $driversNeedingPhotos = $driverMap->filter(fn ($sd) => ! $sd->driver->photo_path);
 
@@ -667,7 +669,6 @@ class SyncF1Results extends Command
             return;
         }
 
-        $openF1Drivers = $openF1->getDrivers($event->openf1_session_key)->keyBy('driver_number');
         $synced = 0;
 
         foreach ($driversNeedingPhotos as $number => $seasonDriver) {
@@ -683,6 +684,34 @@ class SyncF1Results extends Command
 
         if ($synced > 0) {
             $this->line("  Synced {$synced} driver photo(s).");
+        }
+    }
+
+    protected function syncConstructorColours(Collection $driverMap, Collection $openF1Drivers): void
+    {
+        $constructorsNeedingColour = $driverMap
+            ->unique('constructor_id')
+            ->filter(fn ($sd) => ! $sd->constructor->team_colour);
+
+        if ($constructorsNeedingColour->isEmpty()) {
+            return;
+        }
+
+        $synced = 0;
+
+        foreach ($constructorsNeedingColour as $number => $seasonDriver) {
+            $teamColour = $openF1Drivers[$number]['team_colour'] ?? null;
+
+            if (! $teamColour) {
+                continue;
+            }
+
+            $seasonDriver->constructor->update(['team_colour' => $teamColour]);
+            $synced++;
+        }
+
+        if ($synced > 0) {
+            $this->line("  Synced {$synced} constructor colour(s).");
         }
     }
 

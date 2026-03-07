@@ -17,6 +17,7 @@ class Constructor extends Model
         'name',
         'slug',
         'logo_path',
+        'team_colour',
         'is_active',
         'jolpica_constructor_id',
     ];
