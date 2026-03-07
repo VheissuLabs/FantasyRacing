@@ -144,6 +144,10 @@
                   { label: 'Wins', value: props.seasonStat.wins },
                   { label: 'Podiums', value: props.seasonStat.podiums },
                   {
+                      label: 'FIA Points',
+                      value: props.seasonStat.points_total,
+                  },
+                  {
                       label: 'Fantasy Points',
                       value: props.seasonStat.fantasy_points_total,
                   },
@@ -163,6 +167,10 @@
                     },
                     { label: 'Wins', value: props.careerSummary.wins },
                     { label: 'Podiums', value: props.careerSummary.podiums },
+                    {
+                        label: 'FIA Points',
+                        value: props.careerSummary.points_total,
+                    },
                     {
                         label: 'Fantasy Points',
                         value: props.careerSummary.fantasy_points_total,
