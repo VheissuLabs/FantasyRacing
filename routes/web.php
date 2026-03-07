@@ -93,6 +93,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/leagues/{league:slug}/teams/create', [FantasyTeamController::class, 'create'])->name('leagues.teams.create');
     Route::post('/leagues/{league:slug}/teams', [FantasyTeamController::class, 'store'])->name('leagues.teams.store');
     Route::get('/leagues/{league:slug}/teams/{team}', [FantasyTeamController::class, 'show'])->name('leagues.teams.show');
+    Route::put('/leagues/{league:slug}/teams/{team}', [FantasyTeamController::class, 'update'])->name('leagues.teams.update');
     Route::post('/leagues/{league:slug}/teams/{team}/swap', [FantasyTeamController::class, 'swapRoster'])->name('leagues.teams.swap');
     Route::post('/leagues/{league:slug}/teams/{team}/pickup', [FantasyTeamController::class, 'pickupFreeAgent'])->name('leagues.teams.pickup');
 

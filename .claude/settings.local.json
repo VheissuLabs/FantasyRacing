@@ -31,7 +31,9 @@
       "Bash(git add:*)",
       "Bash(git ls-tree:*)",
       "Bash(git config:*)",
-      "Bash(gh pr:*)"
+      "Bash(gh pr:*)",
+      "Bash(npx shadcn-vue@latest:*)",
+      "Bash(do:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

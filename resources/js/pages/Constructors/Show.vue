@@ -36,6 +36,7 @@
         slug: string
         logo_path: string | null
         is_active: boolean
+        country: Country | null
         franchise: { id: number; name: string; slug: string }
     }
 
@@ -187,7 +188,7 @@
 <template>
     <Head :title="constructor.name" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        <div class="px-4 py-8 sm:px-6 lg:px-8">
             <!-- Header -->
             <div class="mb-8 flex items-start gap-5">
                 <div
@@ -213,6 +214,13 @@
                             Inactive
                         </Badge>
                     </div>
+                    <p
+                        v-if="constructor.country"
+                        class="mt-0.5 text-xs text-muted-foreground"
+                    >
+                        {{ constructor.country.emoji }}
+                        {{ constructor.country.name }}
+                    </p>
                     <p class="mt-0.5 text-xs text-muted-foreground">
                         {{ constructor.franchise.name }}
                     </p>

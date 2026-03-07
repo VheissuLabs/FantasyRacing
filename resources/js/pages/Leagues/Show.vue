@@ -45,6 +45,7 @@
         max_teams: number | null
         members_count: number
         is_active: boolean
+        draft_completed_at: string | null
         franchise: { name: string }
         season: { name: string }
         commissioner: { name: string }
@@ -166,7 +167,7 @@
 <template>
     <Head :title="league.name" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+        <div class="px-4 py-8 sm:px-6">
             <!-- Header -->
             <div
                 class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
@@ -225,15 +226,21 @@
                             class="flex items-center justify-between py-2 text-sm"
                         >
                             <div>
-                                <span class="font-medium">{{
-                                    member.user.name
-                                }}</span>
-                                <span
+                                <span class="font-medium">
+                                    {{ member.user.name }}
+                                </span>
+                                <Link
                                     v-if="member.user.fantasy_team"
-                                    class="ml-2 text-muted-foreground"
+                                    :href="
+                                        teamShow({
+                                            league: league.slug,
+                                            team: member.user.fantasy_team.id,
+                                        }).url
+                                    "
+                                    class="ml-2 text-muted-foreground hover:text-primary hover:underline"
                                 >
                                     {{ member.user.fantasy_team.name }}
-                                </span>
+                                </Link>
                             </div>
                             <Badge
                                 v-if="member.role === 'commissioner'"
@@ -268,10 +275,16 @@
                 </CardHeader>
                 <CardContent>
                     <div class="divide-y">
-                        <div
+                        <Link
                             v-for="(team, index) in standings"
                             :key="team.id"
-                            class="flex items-center justify-between py-2 text-sm"
+                            :href="
+                                teamShow({
+                                    league: league.slug,
+                                    team: team.id,
+                                }).url
+                            "
+                            class="flex items-center justify-between rounded-md px-2 py-2 text-sm transition-colors hover:bg-muted"
                         >
                             <div class="flex items-center gap-2">
                                 <span
@@ -288,27 +301,16 @@
                             <span class="font-mono font-medium">{{
                                 team.total_points
                             }}</span>
-                        </div>
+                        </Link>
                     </div>
                 </CardContent>
             </Card>
 
-            <!-- Already a member -->
+            <!-- Pre-draft: team link / create CTA / draft room -->
             <div
-                v-if="membership"
+                v-if="membership && !league.draft_completed_at"
                 class="mb-6 space-y-4"
             >
-                <Alert>
-                    <AlertDescription>
-                        {{
-                            membership.role === 'commissioner'
-                                ? 'You are the commissioner of this league.'
-                                : 'You are a member of this league.'
-                        }}
-                    </AlertDescription>
-                </Alert>
-
-                <!-- Team link or create CTA -->
                 <Card v-if="fantasyTeam">
                     <CardContent class="flex items-center justify-between py-4">
                         <div>

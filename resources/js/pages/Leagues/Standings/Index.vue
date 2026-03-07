@@ -49,7 +49,7 @@
 <template>
     <Head :title="`${league.name} — Standings`" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+        <div class="px-4 py-8 sm:px-6">
             <div class="mb-6">
                 <h1 class="text-2xl font-bold">Standings</h1>
                 <p class="text-sm text-muted-foreground">

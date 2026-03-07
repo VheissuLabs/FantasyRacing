@@ -1,6 +1,6 @@
 <script setup lang="ts">
-    import { Head, Form } from '@inertiajs/vue3'
-    import { ref } from 'vue'
+    import { Head, Form, router, useForm } from '@inertiajs/vue3'
+    import { computed, ref } from 'vue'
     import { Button } from '@/components/ui/button'
     import {
         Card,
@@ -8,10 +8,20 @@
         CardHeader,
         CardTitle,
     } from '@/components/ui/card'
+    import {
+        Dialog,
+        DialogContent,
+        DialogHeader,
+        DialogTitle,
+    } from '@/components/ui/dialog'
+    import { Input } from '@/components/ui/input'
+    import InputError from '@/components/InputError.vue'
     import { Label } from '@/components/ui/label'
+    import { Switch } from '@/components/ui/switch'
     import AppLayout from '@/layouts/AppLayout.vue'
     import { type BreadcrumbItem } from '@/types'
     import {
+        update as updateTeam,
         swapRoster,
         pickupFreeAgent,
     } from '@/actions/App/Http/Controllers/Leagues/FantasyTeamController'
@@ -21,6 +31,8 @@
         id: number
         name: string
         slug: string
+        country_emoji?: string | null
+        constructor_name?: string | null
     }
 
     interface RosterEntry {
@@ -78,21 +90,65 @@
         { title: props.team.name, href: '#' },
     ]
 
-    const inSeatDrivers = props.team.roster.filter(
-        (entry) => entry.entity_type === 'driver' && entry.in_seat,
+    const allDrivers = computed(() =>
+        props.team.roster.filter((entry) => entry.entity_type === 'driver'),
     )
-    const benchDriver =
-        props.team.roster.find(
-            (entry) => entry.entity_type === 'driver' && !entry.in_seat,
-        ) ?? null
-    const constructor =
-        props.team.roster.find(
-            (entry) => entry.entity_type === 'constructor',
-        ) ?? null
+    const inSeatDrivers = computed(() =>
+        allDrivers.value.filter((entry) => entry.in_seat),
+    )
+    const benchDriver = computed(
+        () => allDrivers.value.find((entry) => !entry.in_seat) ?? null,
+    )
+    const constructor = computed(
+        () =>
+            props.team.roster.find(
+                (entry) => entry.entity_type === 'constructor',
+            ) ?? null,
+    )
 
-    // Swap form state
-    const swapBenchId = ref<number | null>(null)
-    const swapSeatId = ref<number | null>(null)
+    // Swap via toggle
+    const swapping = ref(false)
+    const showSwapDialog = ref(false)
+    const pendingBenchDriverId = ref<number | null>(null)
+
+    function handleToggle(driver: RosterEntry) {
+        if (swapping.value) return
+
+        if (driver.in_seat && benchDriver.value) {
+            // Toggling OFF an in-seat driver → swap with bench (unambiguous)
+            submitSwap(benchDriver.value.entity_id, driver.entity_id)
+        } else if (!driver.in_seat && inSeatDrivers.value.length > 1) {
+            // Toggling ON bench driver with multiple in-seat → ask which to sit
+            pendingBenchDriverId.value = driver.entity_id
+            showSwapDialog.value = true
+        } else if (!driver.in_seat && inSeatDrivers.value.length === 1) {
+            // Only one in-seat driver, swap directly
+            submitSwap(driver.entity_id, inSeatDrivers.value[0].entity_id)
+        }
+    }
+
+    function confirmSwap(inSeatDriverId: number) {
+        if (pendingBenchDriverId.value !== null) {
+            submitSwap(pendingBenchDriverId.value, inSeatDriverId)
+        }
+        showSwapDialog.value = false
+        pendingBenchDriverId.value = null
+    }
+
+    function submitSwap(benchDriverId: number, inSeatDriverId: number) {
+        swapping.value = true
+        router.post(
+            swapRoster({ league: props.league.slug, team: props.team.id }).url,
+            {
+                bench_driver_id: benchDriverId,
+                in_seat_driver_id: inSeatDriverId,
+            },
+            {
+                preserveScroll: true,
+                onFinish: () => (swapping.value = false),
+            },
+        )
+    }
 
     // Pickup form state
     const pickupEntityType = ref<'driver' | 'constructor'>('driver')
@@ -101,17 +157,76 @@
 
     const availableFreeAgents = (type: 'driver' | 'constructor') =>
         props.freeAgents.filter((fa) => fa.entity_type === type)
+
+    // Rename team
+    const editingName = ref(false)
+    const nameForm = useForm({ name: props.team.name })
+
+    function saveName() {
+        nameForm.put(
+            updateTeam({
+                league: props.league.slug,
+                team: props.team.id,
+            }).url,
+            {
+                preserveScroll: true,
+                onSuccess: () => (editingName.value = false),
+            },
+        )
+    }
+
+    function cancelEdit() {
+        nameForm.name = props.team.name
+        nameForm.clearErrors()
+        editingName.value = false
+    }
 </script>
 
 <template>
     <Head :title="team.name" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+        <div class="px-4 py-8 sm:px-6">
             <div class="mb-6">
-                <h1 class="text-2xl font-bold">{{ team.name }}</h1>
+                <div
+                    v-if="isOwner && editingName"
+                    class="flex items-center gap-2"
+                >
+                    <Input
+                        v-model="nameForm.name"
+                        class="max-w-xs text-2xl font-bold"
+                        @keydown.enter="saveName"
+                        @keydown.escape="cancelEdit"
+                    />
+                    <Button
+                        size="sm"
+                        :disabled="nameForm.processing"
+                        @click="saveName"
+                    >
+                        Save
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        @click="cancelEdit"
+                    >
+                        Cancel
+                    </Button>
+                </div>
+                <div v-else>
+                    <h1
+                        class="text-2xl font-bold"
+                        :class="
+                            isOwner ? 'cursor-pointer hover:text-primary' : ''
+                        "
+                        @click="isOwner && (editingName = true)"
+                    >
+                        {{ team.name }}
+                    </h1>
+                </div>
+                <InputError :message="nameForm.errors.name" />
                 <p class="text-sm text-muted-foreground">
-                    {{ league.name }} · {{ league.season.name }} · Managed by
-                    {{ team.user.name }}
+                    {{ league.name }} · {{ league.season.name }} · Team
+                    Principal: {{ team.user.name }}
                 </p>
             </div>
 
@@ -159,26 +274,47 @@
                         >
                             Drivers
                         </p>
-                        <ul class="space-y-1">
+                        <ul class="space-y-2">
                             <li
-                                v-for="driver in inSeatDrivers"
+                                v-for="driver in allDrivers"
                                 :key="driver.id"
-                                class="flex items-center gap-2 text-sm font-medium"
+                                class="flex items-center justify-between text-sm"
                             >
-                                <span
-                                    class="inline-block h-2 w-2 rounded-full bg-primary"
-                                ></span>
-                                {{ driver.entity.name }}
-                            </li>
-                            <li
-                                v-if="benchDriver"
-                                class="flex items-center gap-2 text-sm text-muted-foreground"
-                            >
-                                <span
-                                    class="inline-block h-2 w-2 rounded-full bg-muted-foreground/40"
-                                ></span>
-                                {{ benchDriver.entity.name }}
-                                <span class="text-xs">(bench)</span>
+                                <div class="flex items-center gap-2">
+                                    <span
+                                        class="inline-block h-2 w-2 rounded-full"
+                                        :class="
+                                            driver.in_seat
+                                                ? 'bg-primary'
+                                                : 'bg-muted-foreground/40'
+                                        "
+                                    ></span>
+                                    <span v-if="driver.entity.country_emoji">{{
+                                        driver.entity.country_emoji
+                                    }}</span>
+                                    <span
+                                        :class="
+                                            driver.in_seat
+                                                ? 'font-medium'
+                                                : 'text-muted-foreground'
+                                        "
+                                    >
+                                        {{ driver.entity.name }}
+                                    </span>
+                                    ·
+                                    <span
+                                        v-if="driver.entity.constructor_name"
+                                        class="text-xs text-muted-foreground"
+                                    >
+                                        {{ driver.entity.constructor_name }}
+                                    </span>
+                                </div>
+                                <Switch
+                                    v-if="isOwner"
+                                    :model-value="driver.in_seat"
+                                    :disabled="swapping"
+                                    @update:model-value="handleToggle(driver)"
+                                />
                             </li>
                         </ul>
                     </CardContent>
@@ -187,70 +323,6 @@
 
             <!-- Roster management (owner only) -->
             <template v-if="isOwner">
-                <!-- Bench swap -->
-                <Card
-                    v-if="benchDriver && inSeatDrivers.length"
-                    class="mb-6"
-                >
-                    <CardHeader>
-                        <CardTitle class="text-sm">Bench Swap</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <Form
-                            :action="
-                                swapRoster({
-                                    league: league.slug,
-                                    team: team.id,
-                                }).url
-                            "
-                            method="post"
-                            #default="{ processing }"
-                        >
-                            <div class="flex flex-wrap items-end gap-3">
-                                <div class="grid gap-1">
-                                    <Label class="text-xs">
-                                        Bring in (bench)
-                                    </Label>
-                                    <select
-                                        v-model="swapBenchId"
-                                        name="bench_driver_id"
-                                        class="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs ring-offset-background focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
-                                    >
-                                        <option :value="benchDriver.entity_id">
-                                            {{ benchDriver.entity.name }}
-                                        </option>
-                                    </select>
-                                </div>
-                                <div class="grid gap-1">
-                                    <Label class="text-xs">
-                                        Sit out (seat → bench)
-                                    </Label>
-                                    <select
-                                        v-model="swapSeatId"
-                                        name="in_seat_driver_id"
-                                        class="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs ring-offset-background focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
-                                    >
-                                        <option
-                                            v-for="driver in inSeatDrivers"
-                                            :key="driver.id"
-                                            :value="driver.entity_id"
-                                        >
-                                            {{ driver.entity.name }}
-                                        </option>
-                                    </select>
-                                </div>
-                                <Button
-                                    type="submit"
-                                    :disabled="processing"
-                                    size="sm"
-                                >
-                                    {{ processing ? 'Swapping…' : 'Swap' }}
-                                </Button>
-                            </div>
-                        </Form>
-                    </CardContent>
-                </Card>
-
                 <!-- Free agent pickup -->
                 <Card
                     v-if="freeAgents.length"
@@ -377,5 +449,31 @@
                 </CardContent>
             </Card>
         </div>
+
+        <!-- Dialog for choosing which in-seat driver to bench -->
+        <Dialog
+            :open="showSwapDialog"
+            @update:open="showSwapDialog = $event"
+        >
+            <DialogContent class="sm:max-w-sm">
+                <DialogHeader>
+                    <DialogTitle
+                        >Which driver should go to the bench?</DialogTitle
+                    >
+                </DialogHeader>
+                <div class="space-y-2">
+                    <Button
+                        v-for="driver in inSeatDrivers"
+                        :key="driver.id"
+                        variant="outline"
+                        class="w-full justify-start"
+                        :disabled="swapping"
+                        @click="confirmSwap(driver.entity_id)"
+                    >
+                        {{ driver.entity.name }}
+                    </Button>
+                </div>
+            </DialogContent>
+        </Dialog>
     </AppLayout>
 </template>

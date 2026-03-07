@@ -45,7 +45,7 @@
     <Head title="Create League" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+        <div class="px-4 py-8 sm:px-6">
             <SettingsForm
                 v-model:form="form"
                 title="Create a League"

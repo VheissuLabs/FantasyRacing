@@ -21,6 +21,11 @@
         slug: string
         logo_path: string | null
         is_active: boolean
+        country: {
+            id: number
+            name: string
+            emoji: string | null
+        } | null
         franchise: { id: number; name: string }
     }
 
@@ -60,7 +65,7 @@
 <template>
     <Head title="Constructors" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div class="px-4 py-8 sm:px-6 lg:px-8">
             <h1 class="mb-6 text-2xl font-bold">Constructors</h1>
 
             <!-- Filters -->
@@ -116,6 +121,13 @@
                                     class="truncate font-semibold group-hover:text-primary"
                                 >
                                     {{ constructor.name }}
+                                </p>
+                                <p
+                                    v-if="constructor.country"
+                                    class="text-xs text-muted-foreground"
+                                >
+                                    {{ constructor.country.emoji }}
+                                    {{ constructor.country.name }}
                                 </p>
                                 <p class="text-xs text-muted-foreground">
                                     {{ constructor.franchise.name }}

@@ -189,7 +189,7 @@
 <template>
     <Head :title="driver.name" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        <div class="px-4 py-8 sm:px-6 lg:px-8">
             <!-- Header -->
             <div class="mb-8 flex items-start gap-5">
                 <div

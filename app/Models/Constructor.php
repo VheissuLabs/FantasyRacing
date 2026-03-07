@@ -13,6 +13,7 @@ class Constructor extends Model
 
     protected $fillable = [
         'franchise_id',
+        'country_id',
         'name',
         'slug',
         'logo_path',
@@ -30,6 +31,11 @@ class Constructor extends Model
     public function franchise(): BelongsTo
     {
         return $this->belongsTo(Franchise::class);
+    }
+
+    public function country(): BelongsTo
+    {
+        return $this->belongsTo(Country::class);
     }
 
     public function seasonConstructors(): HasMany

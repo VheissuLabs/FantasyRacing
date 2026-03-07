@@ -617,7 +617,7 @@
 <template>
     <Head :title="`${league.name} — Draft`" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+        <div class="px-4 py-6 sm:px-6">
             <div
                 class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
             >

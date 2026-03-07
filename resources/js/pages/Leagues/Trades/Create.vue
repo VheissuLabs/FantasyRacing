@@ -138,7 +138,7 @@
 <template>
     <Head :title="`${league.name} — Propose Trade`" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+        <div class="px-4 py-8 sm:px-6">
             <form @submit.prevent="submit">
                 <Card>
                     <CardHeader>

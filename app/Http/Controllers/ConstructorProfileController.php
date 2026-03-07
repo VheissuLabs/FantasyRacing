@@ -17,7 +17,7 @@ class ConstructorProfileController extends Controller
 
         $constructors = Constructor::query()
             ->where('is_active', true)
-            ->with('franchise')
+            ->with(['franchise', 'country'])
             ->when($franchiseFilter, fn ($query) => $query->whereHas('franchise', fn ($query) => $query->where('slug', $franchiseFilter)))
             ->orderBy('name')
             ->paginate(24)
@@ -34,7 +34,7 @@ class ConstructorProfileController extends Controller
 
     public function show(Constructor $constructor): Response
     {
-        $constructor->load('franchise');
+        $constructor->load(['franchise', 'country']);
 
         $activeSeason = $constructor->franchise->activeSeason();
 
@@ -96,7 +96,7 @@ class ConstructorProfileController extends Controller
 
     public function season(Constructor $constructor, Season $season): Response
     {
-        $constructor->load('franchise');
+        $constructor->load(['franchise', 'country']);
 
         $seasonStat = $constructor->constructorSeasonStats()
             ->where('season_id', $season->id)

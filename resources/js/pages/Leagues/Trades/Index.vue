@@ -124,7 +124,7 @@
 <template>
     <Head :title="`${league.name} — Trades`" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+        <div class="px-4 py-8 sm:px-6">
             <div class="mb-6 flex items-center justify-between">
                 <div>
                     <h1 class="text-2xl font-bold">Trades</h1>

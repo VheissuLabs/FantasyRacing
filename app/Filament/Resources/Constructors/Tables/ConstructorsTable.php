@@ -25,6 +25,7 @@ class ConstructorsTable
             })
             ->columns([
                 TextColumn::make('name')->searchable(),
+                TextColumn::make('country.name')->label('Country')->searchable(),
                 TextColumn::make('slug'),
                 ToggleColumn::make('is_active'),
             ])

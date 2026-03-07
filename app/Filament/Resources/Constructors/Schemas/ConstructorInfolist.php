@@ -15,6 +15,8 @@ class ConstructorInfolist
                 TextEntry::make('franchise.name')
                     ->label('Franchise'),
                 TextEntry::make('name'),
+                TextEntry::make('country.name')
+                    ->label('Country'),
                 TextEntry::make('slug'),
                 TextEntry::make('logo_path'),
                 IconEntry::make('is_active')

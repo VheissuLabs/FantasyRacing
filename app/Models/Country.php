@@ -45,6 +45,11 @@ class Country extends Model
             ->first();
     }
 
+    public function constructors(): HasMany
+    {
+        return $this->hasMany(Constructor::class);
+    }
+
     public function drivers(): HasMany
     {
         return $this->hasMany(Driver::class);

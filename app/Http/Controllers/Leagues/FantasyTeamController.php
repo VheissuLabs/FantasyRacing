@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Leagues\PickupFreeAgentRequest;
 use App\Http\Requests\Leagues\StoreFantasyTeamRequest;
 use App\Http\Requests\Leagues\SwapRosterRequest;
+use App\Http\Requests\Leagues\UpdateFantasyTeamRequest;
 use App\Models\FantasyTeam;
 use App\Models\League;
 use App\Services\RosterService;
@@ -53,6 +54,19 @@ class FantasyTeamController extends Controller
             'league.season',
         ]);
 
+        $seasonId = $team->league->season_id;
+
+        $team->roster->each(function ($entry) use ($seasonId) {
+            if ($entry->entity_type !== 'driver') {
+                return;
+            }
+
+            $driver = $entry->entity;
+            $driver->load('country');
+            $entry->entity->country_emoji = $driver->country?->emoji;
+            $entry->entity->constructor_name = $driver->currentConstructor($seasonId)?->name;
+        });
+
         $pointsByEvent = $team->fantasyPoints()
             ->with('event:id,name,type,scheduled_at,round')
             ->orderBy('event_id')
@@ -81,6 +95,15 @@ class FantasyTeamController extends Controller
             'totalPoints' => (float) $pointsByEvent->sum('total'),
             'freeAgents' => $freeAgents,
         ]);
+    }
+
+    public function update(UpdateFantasyTeamRequest $request, League $league, FantasyTeam $team): RedirectResponse
+    {
+        abort_if($team->league_id !== $league->id, 404);
+
+        $team->update(['name' => $request->validated('name')]);
+
+        return back()->with('success', 'Team name updated.');
     }
 
     public function swapRoster(SwapRosterRequest $request, League $league, FantasyTeam $team, RosterService $roster): RedirectResponse

@@ -46,7 +46,7 @@
 <template>
     <Head title="Create Team" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+        <div class="px-4 py-8 sm:px-6">
             <form @submit.prevent="submit">
                 <Card>
                     <CardHeader>

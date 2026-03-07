@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Constructors\Schemas;
 
+use App\Models\Country;
 use App\Models\Franchise;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -19,6 +20,10 @@ class ConstructorForm
                     ->options(Franchise::all()->pluck('name', 'id'))
                     ->required(),
                 TextInput::make('name')->required(),
+                Select::make('country_id')
+                    ->label('Country')
+                    ->options(Country::orderBy('name')->pluck('name', 'id'))
+                    ->searchable(),
                 TextInput::make('slug')->required(),
                 TextInput::make('logo_path'),
                 Toggle::make('is_active'),
