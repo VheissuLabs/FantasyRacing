@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\CalculateEventPoints;
 use App\Models\Constructor;
 use App\Models\Driver;
 use App\Models\Event;
@@ -14,6 +15,8 @@ use App\Services\Jolpica;
 use App\Services\OpenF1;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 
 class SyncF1Results extends Command
 {
@@ -124,6 +127,8 @@ class SyncF1Results extends Command
 
         if ($event->results()->exists()) {
             $event->update(['status' => 'completed', 'last_synced_at' => now()]);
+            CalculateEventPoints::dispatch($event);
+            $this->line("  Dispatched points calculation for {$event->name}.");
         }
     }
 
@@ -419,6 +424,8 @@ class SyncF1Results extends Command
             ->get()
             ->keyBy('number');
 
+        $this->syncDriverPhotos($event, $openF1, $driverMap);
+
         match ($event->type) {
             'qualifying', 'sprint_qualifying' => $this->openF1SyncQualifying($event, $openF1, $driverMap),
             'race', 'sprint' => $this->openF1SyncRaceOrSprint($event, $openF1, $driverMap),
@@ -427,6 +434,8 @@ class SyncF1Results extends Command
 
         if ($event->results()->exists()) {
             $event->update(['status' => 'completed', 'last_synced_at' => now()]);
+            CalculateEventPoints::dispatch($event);
+            $this->line("  Dispatched points calculation for {$event->name}.");
         }
     }
 
@@ -651,6 +660,44 @@ class SyncF1Results extends Command
     // ──────────────────────────────────────────────────────
     // Shared helpers
     // ──────────────────────────────────────────────────────
+
+    protected function syncDriverPhotos(Event $event, OpenF1 $openF1, Collection $driverMap): void
+    {
+        $driversNeedingPhotos = $driverMap->filter(fn ($sd) => ! $sd->driver->photo_path);
+
+        if ($driversNeedingPhotos->isEmpty()) {
+            return;
+        }
+
+        $openF1Drivers = $openF1->getDrivers($event->openf1_session_key)->keyBy('driver_number');
+        $synced = 0;
+
+        foreach ($driversNeedingPhotos as $number => $seasonDriver) {
+            $openF1Driver = $openF1Drivers[$number] ?? null;
+            $headshotUrl = $openF1Driver['headshot_url'] ?? null;
+
+            if (! $headshotUrl) {
+                continue;
+            }
+
+            $response = Http::timeout(10)->get($headshotUrl);
+
+            if (! $response->successful()) {
+                continue;
+            }
+
+            $extension = pathinfo(parse_url($headshotUrl, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'png';
+            $filename = "drivers/{$seasonDriver->driver->slug}.{$extension}";
+
+            Storage::disk('public')->put($filename, $response->body());
+            $seasonDriver->driver->update(['photo_path' => $filename]);
+            $synced++;
+        }
+
+        if ($synced > 0) {
+            $this->line("  Synced {$synced} driver photo(s).");
+        }
+    }
 
     protected function recordMissingDriversAsDns(Event $event, Collection $driverMap, Collection $syncedNumbers, OpenF1 $openF1): void
     {
