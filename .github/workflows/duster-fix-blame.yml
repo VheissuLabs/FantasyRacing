@@ -1,4 +1,4 @@
-name: Duster Fix
+name: duster
 
 # Commits made in here will not trigger any workflows
 # Checkout Duster's documentation for a workaround
@@ -22,7 +22,7 @@ jobs:
           ref: ${{ github.head_ref || github.ref_name }}
           fetch-depth: 0
 
-      - name: "Duster Fix"
+      - name: "duster fix"
         uses: tighten/duster-action@v3
         with:
           args: fix
