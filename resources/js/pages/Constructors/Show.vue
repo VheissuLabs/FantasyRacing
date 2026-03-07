@@ -105,6 +105,7 @@
         season?: { id: number; name: string; year: number }
         seasonStat?: SeasonStat
         seasonDrivers?: DriverRef[]
+        recentResults?: GroupedEventResult[]
         eventResults?: GroupedEventResult[]
     }>()
 
@@ -196,6 +197,9 @@
               : []
 
     const drivers = isSeasonView ? props.seasonDrivers : props.currentDrivers
+    const displayResults = isSeasonView
+        ? props.eventResults
+        : props.recentResults
 </script>
 
 <template>
@@ -405,13 +409,15 @@
                 </CardContent>
             </Card>
 
-            <!-- Event Results (season view, grouped by event) -->
+            <!-- Event Results (grouped by event) -->
             <Card
-                v-if="isSeasonView && eventResults && eventResults.length > 0"
+                v-if="displayResults && displayResults.length > 0"
                 class="mb-8"
             >
                 <CardHeader>
-                    <CardTitle class="text-sm">Event Results</CardTitle>
+                    <CardTitle class="text-sm">{{
+                        isSeasonView ? 'Event Results' : 'Recent Results'
+                    }}</CardTitle>
                 </CardHeader>
                 <CardContent class="p-0">
                     <div class="overflow-x-auto">
@@ -452,7 +458,7 @@
                             </thead>
                             <tbody>
                                 <template
-                                    v-for="group in eventResults"
+                                    v-for="group in displayResults"
                                     :key="group.event.id"
                                 >
                                     <tr
