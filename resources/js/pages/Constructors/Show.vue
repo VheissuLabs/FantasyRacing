@@ -1,6 +1,6 @@
 <script setup lang="ts">
-    import { computed } from 'vue'
     import { Head, Link } from '@inertiajs/vue3'
+    import { computed } from 'vue'
     import { Badge } from '@/components/ui/badge'
     import {
         Card,
@@ -8,9 +8,9 @@
         CardHeader,
         CardTitle,
     } from '@/components/ui/card'
+    import { useGlobalFilters } from '@/composables/useGlobalFilters'
     import AppLayout from '@/layouts/AppLayout.vue'
     import { type BreadcrumbItem } from '@/types'
-    import { useGlobalFilters } from '@/composables/useGlobalFilters'
     import {
         index as constructorsIndex,
         show as constructorShow,
@@ -273,9 +273,7 @@
                             <p class="text-2xl font-bold">
                                 {{ selectedSeasonStat.races_entered }}
                             </p>
-                            <p class="text-xs text-muted-foreground">
-                                Races
-                            </p>
+                            <p class="text-xs text-muted-foreground">Races</p>
                         </div>
                         <div class="text-center">
                             <p class="text-2xl font-bold">
@@ -307,9 +305,7 @@
                                 <tr
                                     class="border-b text-left text-xs text-muted-foreground"
                                 >
-                                    <th class="px-4 py-2 font-medium">
-                                        Event
-                                    </th>
+                                    <th class="px-4 py-2 font-medium">Event</th>
                                     <th class="px-4 py-2 font-medium">
                                         Driver
                                     </th>
@@ -345,9 +341,7 @@
                                     :key="group.event.id"
                                 >
                                     <tr
-                                        v-for="(
-                                            result, index
-                                        ) in group.results"
+                                        v-for="(result, index) in group.results"
                                         :key="`${group.event.id}-${result.driver.id}`"
                                         class="border-b last:border-0 hover:bg-muted/50"
                                     >
@@ -357,8 +351,7 @@
                                                 <span
                                                     class="text-xs text-muted-foreground"
                                                     >{{
-                                                        group.track
-                                                            ?.name ?? '-'
+                                                        group.track?.name ?? '-'
                                                     }}</span
                                                 >
                                             </template>
@@ -372,16 +365,12 @@
                                             </Link>
                                         </td>
                                         <td class="px-4 py-2 text-right">
-                                            {{
-                                                result.grid_position ?? '-'
-                                            }}
+                                            {{ result.grid_position ?? '-' }}
                                         </td>
                                         <td
                                             class="px-4 py-2 text-right font-medium"
                                         >
-                                            {{
-                                                result.finish_position ?? '-'
-                                            }}
+                                            {{ result.finish_position ?? '-' }}
                                         </td>
                                         <td class="px-4 py-2 capitalize">
                                             {{ result.status }}
@@ -389,9 +378,7 @@
                                         <td class="px-4 py-2">
                                             <div class="flex gap-1">
                                                 <Badge
-                                                    v-if="
-                                                        result.fastest_lap
-                                                    "
+                                                    v-if="result.fastest_lap"
                                                     variant="secondary"
                                                     class="text-xs"
                                                 >
@@ -409,9 +396,7 @@
                                             </div>
                                         </td>
                                         <td class="px-4 py-2 text-right">
-                                            {{
-                                                result.fia_points ?? '-'
-                                            }}
+                                            {{ result.fia_points ?? '-' }}
                                         </td>
                                         <td class="px-4 py-2 text-right">
                                             <template v-if="index === 0">

@@ -23,21 +23,16 @@
         SidebarMenuButton,
         SidebarMenuItem,
     } from '@/components/ui/sidebar'
+    import { useGlobalFilters } from '@/composables/useGlobalFilters'
     import { type NavItem } from '@/types'
     import AppLogo from './AppLogo.vue'
-    import { useGlobalFilters } from '@/composables/useGlobalFilters'
     import { index as constructorsIndex } from '@/actions/App/Http/Controllers/ConstructorProfileController'
     import { index as driversIndex } from '@/actions/App/Http/Controllers/DriverProfileController'
     import { index as leaguesIndex } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
     import { dashboard, docs } from '@/routes'
 
-    const {
-        franchises,
-        filters,
-        availableSeasons,
-        setFranchise,
-        setSeason,
-    } = useGlobalFilters()
+    const { franchises, filters, availableSeasons, setFranchise, setSeason } =
+        useGlobalFilters()
 
     const mainNavItems: NavItem[] = [
         {

@@ -1,5 +1,5 @@
-import { computed } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
+import { computed } from 'vue'
 
 interface Season {
     id: number
@@ -27,12 +27,18 @@ export function useGlobalFilters() {
     )
 
     const filters = computed<GlobalFilters>(
-        () => (page.props.globalFilters as GlobalFilters) ?? { franchise: null, seasonId: null },
+        () =>
+            (page.props.globalFilters as GlobalFilters) ?? {
+                franchise: null,
+                seasonId: null,
+            },
     )
 
     const selectedFranchise = computed(() =>
         filters.value.franchise
-            ? franchises.value.find((f) => f.slug === filters.value.franchise) ?? null
+            ? (franchises.value.find(
+                  (f) => f.slug === filters.value.franchise,
+              ) ?? null)
             : null,
     )
 
@@ -54,7 +60,9 @@ export function useGlobalFilters() {
 
     const selectedSeasonId = computed(() => {
         if (!filters.value.seasonId) return null
-        const exists = availableSeasons.value.some((s) => s.id === filters.value.seasonId)
+        const exists = availableSeasons.value.some(
+            (s) => s.id === filters.value.seasonId,
+        )
         return exists ? filters.value.seasonId : null
     })
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-    import { computed } from 'vue'
     import { Head, Link } from '@inertiajs/vue3'
+    import { computed } from 'vue'
     import { Badge } from '@/components/ui/badge'
     import {
         Card,
@@ -8,9 +8,9 @@
         CardHeader,
         CardTitle,
     } from '@/components/ui/card'
+    import { useGlobalFilters } from '@/composables/useGlobalFilters'
     import AppLayout from '@/layouts/AppLayout.vue'
     import { type BreadcrumbItem } from '@/types'
-    import { useGlobalFilters } from '@/composables/useGlobalFilters'
     import {
         index as driversIndex,
         show as driverShow,
@@ -266,9 +266,7 @@
                             <p class="text-2xl font-bold">
                                 {{ selectedSeasonStat.races_entered }}
                             </p>
-                            <p class="text-xs text-muted-foreground">
-                                Races
-                            </p>
+                            <p class="text-xs text-muted-foreground">Races</p>
                         </div>
                         <div class="text-center">
                             <p class="text-2xl font-bold">
@@ -300,12 +298,8 @@
                                 <tr
                                     class="border-b text-left text-xs text-muted-foreground"
                                 >
-                                    <th class="px-4 py-2 font-medium">
-                                        Event
-                                    </th>
-                                    <th class="px-4 py-2 font-medium">
-                                        Track
-                                    </th>
+                                    <th class="px-4 py-2 font-medium">Event</th>
+                                    <th class="px-4 py-2 font-medium">Track</th>
                                     <th
                                         class="px-4 py-2 text-right font-medium"
                                     >
@@ -342,9 +336,7 @@
                                         {{ result.event.name }}
                                     </td>
                                     <td class="px-4 py-2">
-                                        {{
-                                            result.event.track?.name ?? '-'
-                                        }}
+                                        {{ result.event.track?.name ?? '-' }}
                                     </td>
                                     <td class="px-4 py-2 text-right">
                                         {{ result.grid_position ?? '-' }}
@@ -367,9 +359,7 @@
                                                 FL
                                             </Badge>
                                             <Badge
-                                                v-if="
-                                                    result.driver_of_the_day
-                                                "
+                                                v-if="result.driver_of_the_day"
                                                 variant="default"
                                                 class="text-xs"
                                             >
@@ -393,9 +383,7 @@
                                                     ) > 0,
                                             }"
                                         >
-                                            {{
-                                                result.fantasy_points ?? '-'
-                                            }}
+                                            {{ result.fantasy_points ?? '-' }}
                                         </span>
                                     </td>
                                 </tr>
