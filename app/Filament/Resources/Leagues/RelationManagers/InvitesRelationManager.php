@@ -38,10 +38,10 @@ class InvitesRelationManager extends RelationManager
                         'expired' => 'Expired',
                     ]),
             ])
-            ->actions([
+            ->recordActions([
                 DeleteAction::make(),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 DeleteBulkAction::make(),
             ]);
     }

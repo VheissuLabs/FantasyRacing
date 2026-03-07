@@ -11,6 +11,15 @@ class GlobalSeasonSelector extends Component
 {
     public ?int $seasonId = null;
 
+    /**
+     * Retrieve the current season ID from the session, falling back to the active season.
+     */
+    public static function getCurrentSeasonId(): ?int
+    {
+        return session('filament_season_id')
+            ?? Season::where('is_active', true)->value('id');
+    }
+
     public function mount(): void
     {
         $this->seasonId = session('filament_season_id')
@@ -34,15 +43,6 @@ class GlobalSeasonSelector extends Component
             GlobalFranchiseSelector::getCurrentFranchiseId(),
             fn ($query, $franchiseId) => $query->where('franchise_id', $franchiseId),
         )->orderByDesc('year')->pluck('name', 'id');
-    }
-
-    /**
-     * Retrieve the current season ID from the session, falling back to the active season.
-     */
-    public static function getCurrentSeasonId(): ?int
-    {
-        return session('filament_season_id')
-            ?? Season::where('is_active', true)->value('id');
     }
 
     public function render(): View

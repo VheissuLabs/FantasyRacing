@@ -54,7 +54,7 @@ function createTradeScenario(array $rules = []): array
         $constructor = Constructor::create([
             'franchise_id' => $franchise->id,
             'name' => "Trade Constructor {$i}",
-            'slug' => "trade-constructor-{$i}-".uniqid(),
+            'slug' => "trade-constructor-{$i}-" . uniqid(),
             'is_active' => true,
         ]);
         SeasonConstructor::create(['season_id' => $season->id, 'constructor_id' => $constructor->id]);
@@ -65,7 +65,7 @@ function createTradeScenario(array $rules = []): array
             $driver = Driver::create([
                 'franchise_id' => $franchise->id,
                 'name' => "Trade Driver {$driverIndex}",
-                'slug' => "trade-driver-{$driverIndex}-".uniqid(),
+                'slug' => "trade-driver-{$driverIndex}-" . uniqid(),
                 'is_active' => true,
             ]);
             SeasonDriver::create([
@@ -89,7 +89,7 @@ function createTradeScenario(array $rules = []): array
     FantasyTeamRoster::create(['fantasy_team_id' => $team2->id, 'entity_type' => 'driver', 'entity_id' => $drivers[2]->id, 'in_seat' => true, 'acquired_at' => now()]);
     FantasyTeamRoster::create(['fantasy_team_id' => $team2->id, 'entity_type' => 'driver', 'entity_id' => $drivers[3]->id, 'in_seat' => true, 'acquired_at' => now()]);
 
-    return compact('league', 'franchise', 'season', 'commissioner', 'team1', 'team2', 'drivers', 'constructors', 'track') + ['user1' => $commissioner, 'user2' => $user2];
+    return ['league' => $league, 'franchise' => $franchise, 'season' => $season, 'commissioner' => $commissioner, 'team1' => $team1, 'team2' => $team2, 'drivers' => $drivers, 'constructors' => $constructors, 'track' => $track, 'user1' => $commissioner, 'user2' => $user2];
 }
 
 // ============================================================================
@@ -516,7 +516,7 @@ test('free agent trade moves entity to/from free agent pool', function () {
     $freeDriver = Driver::create([
         'franchise_id' => $scenario['franchise']->id,
         'name' => 'Free Agent Driver',
-        'slug' => 'free-agent-driver-'.uniqid(),
+        'slug' => 'free-agent-driver-' . uniqid(),
         'is_active' => true,
     ]);
 
@@ -673,7 +673,7 @@ test('trade store with null receiver_team_id for free agent trade', function () 
     $freeDriver = Driver::create([
         'franchise_id' => $scenario['franchise']->id,
         'name' => 'Free Agent Store Driver',
-        'slug' => 'free-agent-store-driver-'.uniqid(),
+        'slug' => 'free-agent-store-driver-' . uniqid(),
         'is_active' => true,
     ]);
 

@@ -12,7 +12,7 @@ class LeagueMemberObserver
         FantasyTeam::create([
             'league_id' => $leagueMember->league_id,
             'user_id' => $leagueMember->user_id,
-            'name' => $leagueMember->user->name.'\'s Team',
+            'name' => $leagueMember->user->name . '\'s Team',
         ]);
     }
 }

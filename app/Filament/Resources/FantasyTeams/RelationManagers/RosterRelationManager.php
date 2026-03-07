@@ -28,10 +28,10 @@ class RosterRelationManager extends RelationManager
                 IconColumn::make('in_seat')->label('In Seat')->boolean(),
                 TextColumn::make('acquired_at')->label('Acquired')->date(),
             ])
-            ->actions([
+            ->recordActions([
                 DeleteAction::make(),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 DeleteBulkAction::make(),
             ]);
     }

@@ -19,13 +19,6 @@ class LeagueJoinRequest extends Model
         'reviewed_at',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'reviewed_at' => 'datetime',
-        ];
-    }
-
     public function league(): BelongsTo
     {
         return $this->belongsTo(League::class);
@@ -44,5 +37,12 @@ class LeagueJoinRequest extends Model
     public function isPending(): bool
     {
         return $this->status === 'pending';
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'reviewed_at' => 'datetime',
+        ];
     }
 }

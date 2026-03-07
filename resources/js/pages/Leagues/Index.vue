@@ -1,9 +1,6 @@
 <script setup lang="ts">
     import { Head, Link, router } from '@inertiajs/vue3'
     import { ref } from 'vue'
-    import { create as leaguesCreate } from '@/actions/App/Http/Controllers/Leagues/LeagueController'
-    import { show as leagueShow } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
-    import { index as leaguesIndex } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
     import { Badge } from '@/components/ui/badge'
     import { Button } from '@/components/ui/button'
     import { Card, CardContent } from '@/components/ui/card'
@@ -11,6 +8,9 @@
     import { Label } from '@/components/ui/label'
     import AppLayout from '@/layouts/AppLayout.vue'
     import { type BreadcrumbItem } from '@/types'
+    import { create as leaguesCreate } from '@/actions/App/Http/Controllers/Leagues/LeagueController'
+    import { index as leaguesIndex } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
+    import { show as leagueShow } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
 
     interface Franchise {
         id: number

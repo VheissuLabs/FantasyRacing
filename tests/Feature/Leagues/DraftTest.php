@@ -6,7 +6,9 @@ use App\Models\Constructor;
 use App\Models\DraftSession;
 use App\Models\Driver;
 use App\Models\FantasyTeam;
+use App\Models\FantasyTeamRoster;
 use App\Models\Franchise;
+use App\Models\FreeAgentPool;
 use App\Models\League;
 use App\Models\LeagueMember;
 use App\Models\Season;
@@ -14,6 +16,10 @@ use App\Models\SeasonConstructor;
 use App\Models\SeasonDriver;
 use App\Models\User;
 use Illuminate\Support\Facades\Queue;
+
+use function Pest\Laravel\actingAs;
+use function Pest\Laravel\assertDatabaseHas;
+use function Pest\Laravel\get;
 
 /**
  * Create a league with teams and season entities for draft testing.
@@ -77,7 +83,7 @@ function createDraftScenario(int $teamCount = 2): array
         }
     }
 
-    return compact('league', 'commissioner', 'users', 'teams', 'constructors', 'drivers');
+    return ['league' => $league, 'commissioner' => $commissioner, 'users' => $users, 'teams' => $teams, 'constructors' => $constructors, 'drivers' => $drivers];
 }
 
 /**
@@ -110,7 +116,7 @@ function createReadyDraft(array $scenario, bool $start = false): DraftSession
 test('guests cannot access the draft page', function () {
     $league = League::factory()->create();
 
-    $this->get(route('leagues.draft', $league->slug))
+    get(route('leagues.draft', $league->slug))
         ->assertRedirect(route('login'));
 });
 
@@ -124,7 +130,7 @@ test('authenticated users can access the draft page with a session', function ()
         'total_picks' => 0,
     ]);
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->get(route('leagues.draft', $scenario['league']->slug))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
@@ -137,7 +143,7 @@ test('authenticated users can access the draft page with a session', function ()
 test('draft page works when no session exists', function () {
     $scenario = createDraftScenario();
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->get(route('leagues.draft', $scenario['league']->slug))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
@@ -151,7 +157,7 @@ test('draft page works when no session exists', function () {
 test('draft page passes teams, allDrivers, and allConstructors props', function () {
     $scenario = createDraftScenario();
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->get(route('leagues.draft', $scenario['league']->slug))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
@@ -167,14 +173,14 @@ test('draft page passes teams, allDrivers, and allConstructors props', function 
 test('commissioner can create a draft session', function () {
     $scenario = createDraftScenario();
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->post(route('leagues.draft.setup', $scenario['league']->slug), [
             'type' => 'snake',
             'pick_time_limit_seconds' => 90,
         ])
         ->assertRedirect();
 
-    $this->assertDatabaseHas('draft_sessions', [
+    assertDatabaseHas('draft_sessions', [
         'league_id' => $scenario['league']->id,
         'type' => 'snake',
         'pick_time_limit_seconds' => 90,
@@ -185,7 +191,7 @@ test('commissioner can create a draft session', function () {
 test('non-commissioner cannot create a draft session', function () {
     $scenario = createDraftScenario();
 
-    $this->actingAs($scenario['users'][1])
+    actingAs($scenario['users'][1])
         ->post(route('leagues.draft.setup', $scenario['league']->slug), [
             'type' => 'snake',
             'pick_time_limit_seconds' => 60,
@@ -203,7 +209,7 @@ test('cannot create a second draft session', function () {
         'total_picks' => 0,
     ]);
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->post(route('leagues.draft.setup', $scenario['league']->slug), [
             'type' => 'snake',
             'pick_time_limit_seconds' => 60,
@@ -216,7 +222,7 @@ test('cannot create a second draft session', function () {
 test('draft setup automatically generates a randomized order', function () {
     $scenario = createDraftScenario();
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->post(route('leagues.draft.setup', $scenario['league']->slug), [
             'type' => 'snake',
             'pick_time_limit_seconds' => 60,
@@ -236,7 +242,7 @@ test('commissioner can start a draft after generating order', function () {
     $scenario = createDraftScenario();
     $session = createReadyDraft($scenario);
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->post(route('leagues.draft.start', $scenario['league']->slug))
         ->assertRedirect();
 
@@ -255,7 +261,7 @@ test('cannot start draft without generating order first', function () {
         'total_picks' => 0,
     ]);
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->post(route('leagues.draft.start', $scenario['league']->slug))
         ->assertRedirect()
         ->assertSessionHasErrors('draft');
@@ -269,14 +275,14 @@ test('commissioner can pause and resume a draft', function () {
     $scenario = createDraftScenario();
     $session = createReadyDraft($scenario, start: true);
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->post(route('leagues.draft.pause', $scenario['league']->slug))
         ->assertRedirect();
 
     $session->refresh();
     expect($session->status)->toBe('paused');
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->post(route('leagues.draft.resume', $scenario['league']->slug))
         ->assertRedirect();
 
@@ -296,7 +302,7 @@ test('team can make a pick on their turn', function () {
     $firstOrder = $session->orders()->where('pick_number', 1)->first();
     $pickingUser = collect($scenario['teams'])->first(fn ($team) => $team->id === $firstOrder->fantasy_team_id)->user;
 
-    $this->actingAs($pickingUser ?? $scenario['commissioner'])
+    actingAs($pickingUser ?? $scenario['commissioner'])
         ->post(route('leagues.draft.pick', $scenario['league']->slug), [
             'entity_type' => 'constructor',
             'entity_id' => $scenario['constructors'][0]->id,
@@ -322,7 +328,7 @@ test('wrong team cannot pick', function () {
         return $userTeam && $userTeam->id !== $firstOrder->fantasy_team_id;
     });
 
-    $this->actingAs($wrongUser)
+    actingAs($wrongUser)
         ->post(route('leagues.draft.pick', $scenario['league']->slug), [
             'entity_type' => 'constructor',
             'entity_id' => $scenario['constructors'][0]->id,
@@ -369,7 +375,7 @@ test('commissioner can set custom team order', function () {
 
     $reversedTeamIds = array_reverse(array_map(fn ($team) => $team->id, $scenario['teams']));
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->put(route('leagues.draft.update-order', $scenario['league']->slug), [
             'team_ids' => $reversedTeamIds,
         ])
@@ -385,7 +391,7 @@ test('cannot update order with mismatched team ids', function () {
     $scenario = createDraftScenario();
     createReadyDraft($scenario);
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->put(route('leagues.draft.update-order', $scenario['league']->slug), [
             'team_ids' => [999, 998],
         ])
@@ -399,7 +405,7 @@ test('non-commissioner cannot update draft order', function () {
 
     $teamIds = array_map(fn ($team) => $team->id, $scenario['teams']);
 
-    $this->actingAs($scenario['users'][1])
+    actingAs($scenario['users'][1])
         ->put(route('leagues.draft.update-order', $scenario['league']->slug), [
             'team_ids' => $teamIds,
         ])
@@ -414,7 +420,7 @@ test('cannot update order for active draft', function () {
 
     $teamIds = array_map(fn ($team) => $team->id, $scenario['teams']);
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->put(route('leagues.draft.update-order', $scenario['league']->slug), [
             'team_ids' => $teamIds,
         ])
@@ -429,7 +435,7 @@ test('commissioner can set scheduled_at during setup', function () {
     $scenario = createDraftScenario();
     $scheduledAt = now()->addDay()->format('Y-m-d\TH:i');
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->post(route('leagues.draft.setup', $scenario['league']->slug), [
             'type' => 'snake',
             'pick_time_limit_seconds' => 60,
@@ -437,7 +443,7 @@ test('commissioner can set scheduled_at during setup', function () {
         ])
         ->assertRedirect();
 
-    $this->assertDatabaseHas('draft_sessions', [
+    assertDatabaseHas('draft_sessions', [
         'league_id' => $scenario['league']->id,
         'status' => 'pending',
     ]);
@@ -453,7 +459,7 @@ test('setup without scheduled_at does not dispatch notifications', function () {
 
     $scenario = createDraftScenario();
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->post(route('leagues.draft.setup', $scenario['league']->slug), [
             'type' => 'snake',
             'pick_time_limit_seconds' => 60,
@@ -477,7 +483,7 @@ test('commissioner can schedule a draft date on a pending session', function () 
 
     $scheduledAt = now()->addDays(2)->format('Y-m-d\TH:i');
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->post(route('leagues.draft.schedule', $scenario['league']->slug), [
             'scheduled_at' => $scheduledAt,
         ])
@@ -500,7 +506,7 @@ test('non-commissioner cannot schedule a draft', function () {
         'total_picks' => 0,
     ]);
 
-    $this->actingAs($scenario['users'][1])
+    actingAs($scenario['users'][1])
         ->post(route('leagues.draft.schedule', $scenario['league']->slug), [
             'scheduled_at' => now()->addDay()->format('Y-m-d\TH:i'),
         ])
@@ -513,7 +519,7 @@ test('cannot schedule on active or completed sessions', function () {
     $scenario = createDraftScenario();
     createReadyDraft($scenario, start: true);
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->post(route('leagues.draft.schedule', $scenario['league']->slug), [
             'scheduled_at' => now()->addDay()->format('Y-m-d\TH:i'),
         ])
@@ -534,7 +540,7 @@ test('commissioner can restart an active draft', function () {
 
     expect($session->refresh()->picks()->count())->toBe(1);
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->post(route('leagues.draft.restart', $scenario['league']->slug))
         ->assertRedirect()
         ->assertSessionHas('success');
@@ -563,7 +569,7 @@ test('commissioner can restart a completed draft', function () {
     expect($session->status)->toBe('completed');
     expect($scenario['league']->fresh()->draft_completed_at)->not->toBeNull();
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->post(route('leagues.draft.restart', $scenario['league']->slug))
         ->assertRedirect()
         ->assertSessionHas('success');
@@ -572,8 +578,8 @@ test('commissioner can restart a completed draft', function () {
     expect($session->status)->toBe('pending');
     expect($session->picks()->count())->toBe(0);
     expect($scenario['league']->fresh()->draft_completed_at)->toBeNull();
-    expect(\App\Models\FantasyTeamRoster::whereIn('fantasy_team_id', collect($scenario['teams'])->pluck('id'))->count())->toBe(0);
-    expect(\App\Models\FreeAgentPool::where('league_id', $scenario['league']->id)->count())->toBe(0);
+    expect(FantasyTeamRoster::whereIn('fantasy_team_id', collect($scenario['teams'])->pluck('id'))->count())->toBe(0);
+    expect(FreeAgentPool::where('league_id', $scenario['league']->id)->count())->toBe(0);
 });
 
 test('non-commissioner cannot restart a draft', function () {
@@ -582,7 +588,7 @@ test('non-commissioner cannot restart a draft', function () {
     $scenario = createDraftScenario();
     createReadyDraft($scenario, start: true);
 
-    $this->actingAs($scenario['users'][1])
+    actingAs($scenario['users'][1])
         ->post(route('leagues.draft.restart', $scenario['league']->slug))
         ->assertForbidden();
 });
@@ -591,7 +597,7 @@ test('cannot restart a pending draft', function () {
     $scenario = createDraftScenario();
     createReadyDraft($scenario);
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->post(route('leagues.draft.restart', $scenario['league']->slug))
         ->assertStatus(422);
 });
@@ -606,7 +612,7 @@ test('scheduled date must be in the future', function () {
         'total_picks' => 0,
     ]);
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->post(route('leagues.draft.schedule', $scenario['league']->slug), [
             'scheduled_at' => now()->subHour()->format('Y-m-d\TH:i'),
         ])
@@ -617,7 +623,7 @@ test('draft page shows myTeam as null for user without a team', function () {
     $scenario = createDraftScenario();
     $userWithoutTeam = User::factory()->create();
 
-    $this->actingAs($userWithoutTeam)
+    actingAs($userWithoutTeam)
         ->get(route('leagues.draft', $scenario['league']->slug))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
@@ -633,7 +639,7 @@ test('starting an already active draft redirects back without error', function (
     $scenario = createDraftScenario();
     createReadyDraft($scenario, start: true);
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->post(route('leagues.draft.start', $scenario['league']->slug))
         ->assertRedirect()
         ->assertSessionMissing('success');
@@ -643,7 +649,7 @@ test('pausing a non-active draft returns validation error', function () {
     $scenario = createDraftScenario();
     createReadyDraft($scenario); // pending, not started
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->post(route('leagues.draft.pause', $scenario['league']->slug))
         ->assertRedirect()
         ->assertSessionHasErrors('draft');
@@ -655,7 +661,7 @@ test('resuming a non-paused draft returns validation error', function () {
     $scenario = createDraftScenario();
     createReadyDraft($scenario, start: true); // active, not paused
 
-    $this->actingAs($scenario['commissioner'])
+    actingAs($scenario['commissioner'])
         ->post(route('leagues.draft.resume', $scenario['league']->slug))
         ->assertRedirect()
         ->assertSessionHasErrors('draft');

@@ -12,6 +12,12 @@ class GlobalFranchiseSelector extends Component
 {
     public ?int $franchiseId = null;
 
+    public static function getCurrentFranchiseId(): ?int
+    {
+        return session('filament_franchise_id')
+            ?? Franchise::where('is_active', true)->value('id');
+    }
+
     public function mount(): void
     {
         $this->franchiseId = session('filament_franchise_id');
@@ -48,12 +54,6 @@ class GlobalFranchiseSelector extends Component
         }
 
         return $user?->managedFranchises()->orderBy('name')->pluck('name', 'franchises.id') ?? collect();
-    }
-
-    public static function getCurrentFranchiseId(): ?int
-    {
-        return session('filament_franchise_id')
-            ?? Franchise::where('is_active', true)->value('id');
     }
 
     public function render(): View

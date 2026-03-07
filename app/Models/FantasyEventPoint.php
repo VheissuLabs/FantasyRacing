@@ -18,15 +18,6 @@ class FantasyEventPoint extends Model
         'computed_at',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'points' => 'decimal:2',
-            'breakdown' => 'array',
-            'computed_at' => 'datetime',
-        ];
-    }
-
     public function fantasyTeam(): BelongsTo
     {
         return $this->belongsTo(FantasyTeam::class);
@@ -40,5 +31,14 @@ class FantasyEventPoint extends Model
     public function entity(): MorphTo
     {
         return $this->morphTo(__FUNCTION__, 'entity_type', 'entity_id');
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'points' => 'decimal:2',
+            'breakdown' => 'array',
+            'computed_at' => 'datetime',
+        ];
     }
 }

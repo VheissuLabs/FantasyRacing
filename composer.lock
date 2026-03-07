@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "247c303981e458569d2e16134ce1328a",
+    "content-hash": "fa4d6fcd4df15e2571c203c689efce87",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -13055,6 +13055,74 @@
                 }
             ],
             "time": "2025-12-08T11:19:18+00:00"
+        },
+        {
+            "name": "tightenco/duster",
+            "version": "v3.4.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/tighten/duster.git",
+                "reference": "911669fc874a1af4de87cf021cdb58a97584ec52"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/tighten/duster/zipball/911669fc874a1af4de87cf021cdb58a97584ec52",
+                "reference": "911669fc874a1af4de87cf021cdb58a97584ec52",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.2.0"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3.94",
+                "laravel-zero/framework": "^12.0",
+                "laravel/pint": "^1.27",
+                "nunomaduro/termwind": "^2.4",
+                "spatie/invade": "^1.1",
+                "squizlabs/php_codesniffer": "^4.0",
+                "tightenco/tlint": "^9.5"
+            },
+            "bin": [
+                "builds/duster"
+            ],
+            "type": "project",
+            "autoload": {
+                "psr-4": {
+                    "App\\": "app/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Matt Stauffer",
+                    "email": "matt@tighten.com",
+                    "homepage": "https://tighten.com",
+                    "role": "Developer"
+                },
+                {
+                    "name": "Anthony Clark",
+                    "email": "anthony@tighten.com",
+                    "homepage": "https://tighten.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Automatic configuration for Laravel apps to apply Tighten's standard linting & code standards.",
+            "homepage": "https://github.com/tighten/duster",
+            "keywords": [
+                "Code style",
+                "duster",
+                "laravel",
+                "php",
+                "tightenco"
+            ],
+            "support": {
+                "issues": "https://github.com/tighten/duster/issues",
+                "source": "https://github.com/tighten/duster"
+            },
+            "time": "2026-03-06T22:05:01+00:00"
         },
         {
             "name": "webmozart/assert",

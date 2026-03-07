@@ -32,16 +32,6 @@ class DriverSeasonStat extends Model
         'last_computed_at',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'points_total' => 'decimal:2',
-            'fantasy_points_total' => 'decimal:2',
-            'fantasy_ownership_pct' => 'decimal:2',
-            'last_computed_at' => 'datetime',
-        ];
-    }
-
     public function driver(): BelongsTo
     {
         return $this->belongsTo(Driver::class);
@@ -55,5 +45,15 @@ class DriverSeasonStat extends Model
     public function constructor(): BelongsTo
     {
         return $this->belongsTo(Constructor::class);
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'points_total' => 'decimal:2',
+            'fantasy_points_total' => 'decimal:2',
+            'fantasy_ownership_pct' => 'decimal:2',
+            'last_computed_at' => 'datetime',
+        ];
     }
 }

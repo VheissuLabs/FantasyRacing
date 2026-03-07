@@ -188,7 +188,7 @@ class SyncF1Season extends Command
             }
         }
 
-        $this->line('  Found '.count($allDriverData).' unique drivers.');
+        $this->line('  Found ' . count($allDriverData) . ' unique drivers.');
 
         // --- Constructors ---
         $constructorsById = [];
@@ -270,7 +270,7 @@ class SyncF1Season extends Command
 
     protected function createEvent(Season $season, Track $track, int $round, string $type, string $name, string $date, ?string $time): Event
     {
-        $scheduledAt = $date.'T'.($time ? rtrim($time, 'Z') : '00:00:00');
+        $scheduledAt = $date . 'T' . ($time ? rtrim($time, 'Z') : '00:00:00');
         $isPast = now()->isAfter($scheduledAt);
 
         return Event::create([

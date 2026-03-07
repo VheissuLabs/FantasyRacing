@@ -15,18 +15,6 @@ class BonusPointsScheme extends Model
         'points',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'points' => 'decimal:2',
-        ];
-    }
-
-    public function franchise(): BelongsTo
-    {
-        return $this->belongsTo(Franchise::class);
-    }
-
     public static function getBonusPoints(
         string $eventType,
         string $bonusKey,
@@ -38,5 +26,17 @@ class BonusPointsScheme extends Model
             ->where('bonus_key', $bonusKey)
             ->where('applies_to', $appliesTo)
             ->first()?->points ?? 0;
+    }
+
+    public function franchise(): BelongsTo
+    {
+        return $this->belongsTo(Franchise::class);
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'points' => 'decimal:2',
+        ];
     }
 }

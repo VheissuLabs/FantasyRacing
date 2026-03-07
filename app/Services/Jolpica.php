@@ -18,21 +18,21 @@ class Jolpica
 
     public function getSchedule(int $year): Collection
     {
-        $response = $this->get(self::BASE_URL."/{$year}.json", ['limit' => 100]);
+        $response = $this->get(self::BASE_URL . "/{$year}.json", ['limit' => 100]);
 
         return collect($response->json('MRData.RaceTable.Races', []));
     }
 
     public function getCircuits(int $year): Collection
     {
-        $response = $this->get(self::BASE_URL."/{$year}/circuits.json", ['limit' => 100]);
+        $response = $this->get(self::BASE_URL . "/{$year}/circuits.json", ['limit' => 100]);
 
         return collect($response->json('MRData.CircuitTable.Circuits', []));
     }
 
     public function getDrivers(int $year): Collection
     {
-        $response = $this->get(self::BASE_URL."/{$year}/drivers.json", ['limit' => 100]);
+        $response = $this->get(self::BASE_URL . "/{$year}/drivers.json", ['limit' => 100]);
 
         return collect($response->json('MRData.DriverTable.Drivers', []));
     }
@@ -43,28 +43,28 @@ class Jolpica
      */
     public function getAllRaceResults(int $year): Collection
     {
-        $response = $this->get(self::BASE_URL."/{$year}/results.json", ['limit' => 500]);
+        $response = $this->get(self::BASE_URL . "/{$year}/results.json", ['limit' => 500]);
 
         return collect($response->json('MRData.RaceTable.Races', []));
     }
 
     public function getConstructors(int $year): Collection
     {
-        $response = $this->get(self::BASE_URL."/{$year}/constructors.json", ['limit' => 100]);
+        $response = $this->get(self::BASE_URL . "/{$year}/constructors.json", ['limit' => 100]);
 
         return collect($response->json('MRData.ConstructorTable.Constructors', []));
     }
 
     public function getConstructorDrivers(int $year, string $constructorId): Collection
     {
-        $response = $this->get(self::BASE_URL."/{$year}/constructors/{$constructorId}/drivers.json", ['limit' => 100]);
+        $response = $this->get(self::BASE_URL . "/{$year}/constructors/{$constructorId}/drivers.json", ['limit' => 100]);
 
         return collect($response->json('MRData.DriverTable.Drivers', []));
     }
 
     public function getRaceResults(int $year, int $round): Collection
     {
-        $response = $this->get(self::BASE_URL."/{$year}/{$round}/results.json", ['limit' => 100]);
+        $response = $this->get(self::BASE_URL . "/{$year}/{$round}/results.json", ['limit' => 100]);
 
         $races = $response->json('MRData.RaceTable.Races', []);
 
@@ -73,7 +73,7 @@ class Jolpica
 
     public function getQualifyingResults(int $year, int $round): Collection
     {
-        $response = $this->get(self::BASE_URL."/{$year}/{$round}/qualifying.json", ['limit' => 100]);
+        $response = $this->get(self::BASE_URL . "/{$year}/{$round}/qualifying.json", ['limit' => 100]);
 
         $races = $response->json('MRData.RaceTable.Races', []);
 
@@ -82,7 +82,7 @@ class Jolpica
 
     public function getSprintResults(int $year, int $round): Collection
     {
-        $response = $this->get(self::BASE_URL."/{$year}/{$round}/sprint.json", ['limit' => 100]);
+        $response = $this->get(self::BASE_URL . "/{$year}/{$round}/sprint.json", ['limit' => 100]);
 
         $races = $response->json('MRData.RaceTable.Races', []);
 
@@ -91,7 +91,7 @@ class Jolpica
 
     public function getSprintQualifyingResults(int $year, int $round): Collection
     {
-        $response = $this->get(self::BASE_URL."/{$year}/{$round}/sprintQualifying.json", ['limit' => 100]);
+        $response = $this->get(self::BASE_URL . "/{$year}/{$round}/sprintQualifying.json", ['limit' => 100]);
 
         $races = $response->json('MRData.RaceTable.Races', []);
 
@@ -100,7 +100,7 @@ class Jolpica
 
     public function getPitStops(int $year, int $round): Collection
     {
-        $response = $this->get(self::BASE_URL."/{$year}/{$round}/pitstops.json", ['limit' => 100]);
+        $response = $this->get(self::BASE_URL . "/{$year}/{$round}/pitstops.json", ['limit' => 100]);
 
         $races = $response->json('MRData.RaceTable.Races', []);
 

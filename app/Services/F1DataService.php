@@ -17,7 +17,7 @@ class F1DataService
      */
     public function resolveDriver(array $jolpicaDriver, Franchise $franchise): Driver
     {
-        $name = trim($jolpicaDriver['givenName'].' '.$jolpicaDriver['familyName']);
+        $name = trim($jolpicaDriver['givenName'] . ' ' . $jolpicaDriver['familyName']);
         $country = isset($jolpicaDriver['nationality'])
             ? Country::findByNationality($jolpicaDriver['nationality'])
             : null;

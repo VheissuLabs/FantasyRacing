@@ -2,6 +2,8 @@
 
 use App\Models\Constructor;
 use App\Models\Driver;
+use App\Models\Event;
+use App\Models\FantasyEventPoint;
 use App\Models\FantasyTeam;
 use App\Models\FantasyTeamRoster;
 use App\Models\Franchise;
@@ -11,7 +13,11 @@ use App\Models\LeagueMember;
 use App\Models\Season;
 use App\Models\SeasonConstructor;
 use App\Models\SeasonDriver;
+use App\Models\Track;
 use App\Models\User;
+
+use function Pest\Laravel\actingAs;
+use function Pest\Laravel\get;
 
 /**
  * Create a team scenario with a league, an owner, a team with roster entries, and a free agent.
@@ -41,7 +47,7 @@ function createTeamScenario(): array
     $constructor = Constructor::create([
         'franchise_id' => $franchise->id,
         'name' => 'Test Constructor',
-        'slug' => 'test-constructor-'.uniqid(),
+        'slug' => 'test-constructor-' . uniqid(),
         'is_active' => true,
     ]);
     SeasonConstructor::create(['season_id' => $season->id, 'constructor_id' => $constructor->id]);
@@ -51,7 +57,7 @@ function createTeamScenario(): array
         $driver = Driver::create([
             'franchise_id' => $franchise->id,
             'name' => "Test Driver {$i}",
-            'slug' => "test-driver-{$i}-".uniqid(),
+            'slug' => "test-driver-{$i}-" . uniqid(),
             'is_active' => true,
         ]);
         SeasonDriver::create([
@@ -74,7 +80,7 @@ function createTeamScenario(): array
     $freeDriver = Driver::create([
         'franchise_id' => $franchise->id,
         'name' => 'Free Agent Driver',
-        'slug' => 'free-agent-driver-'.uniqid(),
+        'slug' => 'free-agent-driver-' . uniqid(),
         'is_active' => true,
     ]);
     SeasonDriver::create([
@@ -91,7 +97,7 @@ function createTeamScenario(): array
         'added_at' => now(),
     ]);
 
-    return compact('league', 'franchise', 'season', 'owner', 'team', 'drivers', 'freeDriver') + ['constructors' => [$constructor], 'commissioner' => $commissioner];
+    return ['league' => $league, 'franchise' => $franchise, 'season' => $season, 'owner' => $owner, 'team' => $team, 'drivers' => $drivers, 'freeDriver' => $freeDriver, 'constructors' => [$constructor], 'commissioner' => $commissioner];
 }
 
 // ============================================================================
@@ -101,14 +107,14 @@ function createTeamScenario(): array
 test('team show page requires authentication', function () {
     $scenario = createTeamScenario();
 
-    $this->get(route('leagues.teams.show', [$scenario['league']->slug, $scenario['team']->id]))
+    get(route('leagues.teams.show', [$scenario['league']->slug, $scenario['team']->id]))
         ->assertRedirect(route('login'));
 });
 
 test('team show page renders with correct props', function () {
     $scenario = createTeamScenario();
 
-    $this->actingAs($scenario['owner'])
+    actingAs($scenario['owner'])
         ->get(route('leagues.teams.show', [$scenario['league']->slug, $scenario['team']->id]))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
@@ -126,7 +132,7 @@ test('team show page 404s when team does not belong to league', function () {
     $scenario = createTeamScenario();
     $otherLeague = League::factory()->create();
 
-    $this->actingAs($scenario['owner'])
+    actingAs($scenario['owner'])
         ->get(route('leagues.teams.show', [$otherLeague->slug, $scenario['team']->id]))
         ->assertNotFound();
 });
@@ -134,7 +140,7 @@ test('team show page 404s when team does not belong to league', function () {
 test('team show page identifies owner correctly when viewing own team', function () {
     $scenario = createTeamScenario();
 
-    $this->actingAs($scenario['owner'])
+    actingAs($scenario['owner'])
         ->get(route('leagues.teams.show', [$scenario['league']->slug, $scenario['team']->id]))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
@@ -147,7 +153,7 @@ test('team show page identifies non-owner correctly', function () {
     $otherUser = User::factory()->create();
     LeagueMember::create(['league_id' => $scenario['league']->id, 'user_id' => $otherUser->id, 'role' => 'member', 'joined_at' => now()]);
 
-    $this->actingAs($otherUser)
+    actingAs($otherUser)
         ->get(route('leagues.teams.show', [$scenario['league']->slug, $scenario['team']->id]))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
@@ -162,7 +168,7 @@ test('team show page identifies non-owner correctly', function () {
 test('swap roster succeeds for team owner', function () {
     $scenario = createTeamScenario();
 
-    $this->actingAs($scenario['owner'])
+    actingAs($scenario['owner'])
         ->post(route('leagues.teams.swap', [$scenario['league']->slug, $scenario['team']->id]), [
             'bench_driver_id' => $scenario['drivers'][2]->id,
             'in_seat_driver_id' => $scenario['drivers'][0]->id,
@@ -185,7 +191,7 @@ test('swap roster is forbidden for non-owner', function () {
     $scenario = createTeamScenario();
     $otherUser = User::factory()->create();
 
-    $this->actingAs($otherUser)
+    actingAs($otherUser)
         ->post(route('leagues.teams.swap', [$scenario['league']->slug, $scenario['team']->id]), [
             'bench_driver_id' => $scenario['drivers'][2]->id,
             'in_seat_driver_id' => $scenario['drivers'][0]->id,
@@ -197,7 +203,7 @@ test('swap roster 404s when team does not belong to league', function () {
     $scenario = createTeamScenario();
     $otherLeague = League::factory()->create();
 
-    $this->actingAs($scenario['owner'])
+    actingAs($scenario['owner'])
         ->post(route('leagues.teams.swap', [$otherLeague->slug, $scenario['team']->id]), [
             'bench_driver_id' => $scenario['drivers'][2]->id,
             'in_seat_driver_id' => $scenario['drivers'][0]->id,
@@ -212,7 +218,7 @@ test('swap roster 404s when team does not belong to league', function () {
 test('free agent pickup succeeds for team owner', function () {
     $scenario = createTeamScenario();
 
-    $this->actingAs($scenario['owner'])
+    actingAs($scenario['owner'])
         ->post(route('leagues.teams.pickup', [$scenario['league']->slug, $scenario['team']->id]), [
             'entity_type' => 'driver',
             'pickup_entity_id' => $scenario['freeDriver']->id,
@@ -234,7 +240,7 @@ test('free agent pickup is forbidden for non-owner', function () {
     $scenario = createTeamScenario();
     $otherUser = User::factory()->create();
 
-    $this->actingAs($otherUser)
+    actingAs($otherUser)
         ->post(route('leagues.teams.pickup', [$scenario['league']->slug, $scenario['team']->id]), [
             'entity_type' => 'driver',
             'pickup_entity_id' => $scenario['freeDriver']->id,
@@ -246,7 +252,7 @@ test('free agent pickup is forbidden for non-owner', function () {
 test('free agent pickup validates required fields', function () {
     $scenario = createTeamScenario();
 
-    $this->actingAs($scenario['owner'])
+    actingAs($scenario['owner'])
         ->post(route('leagues.teams.pickup', [$scenario['league']->slug, $scenario['team']->id]), [])
         ->assertSessionHasErrors(['entity_type', 'pickup_entity_id', 'drop_entity_id']);
 });
@@ -254,19 +260,19 @@ test('free agent pickup validates required fields', function () {
 test('team show page includes points breakdown per event', function () {
     $scenario = createTeamScenario();
 
-    $track = \App\Models\Track::create([
+    $track = Track::create([
         'franchise_id' => $scenario['franchise']->id,
         'name' => 'Test Track',
         'location' => 'Test City',
         'country' => 'Testland',
     ]);
 
-    $event = \App\Models\Event::factory()->completed()->create([
+    $event = Event::factory()->completed()->create([
         'season_id' => $scenario['season']->id,
         'track_id' => $track->id,
     ]);
 
-    \App\Models\FantasyEventPoint::create([
+    FantasyEventPoint::create([
         'fantasy_team_id' => $scenario['team']->id,
         'event_id' => $event->id,
         'entity_type' => 'driver',
@@ -276,7 +282,7 @@ test('team show page includes points breakdown per event', function () {
         'computed_at' => now(),
     ]);
 
-    \App\Models\FantasyEventPoint::create([
+    FantasyEventPoint::create([
         'fantasy_team_id' => $scenario['team']->id,
         'event_id' => $event->id,
         'entity_type' => 'constructor',
@@ -286,7 +292,7 @@ test('team show page includes points breakdown per event', function () {
         'computed_at' => now(),
     ]);
 
-    $this->actingAs($scenario['owner'])
+    actingAs($scenario['owner'])
         ->get(route('leagues.teams.show', [$scenario['league']->slug, $scenario['team']->id]))
         ->assertOk()
         ->assertInertia(fn ($page) => $page

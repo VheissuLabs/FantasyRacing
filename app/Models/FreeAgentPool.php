@@ -17,13 +17,6 @@ class FreeAgentPool extends Model
         'added_at',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'added_at' => 'datetime',
-        ];
-    }
-
     public function league(): BelongsTo
     {
         return $this->belongsTo(League::class);
@@ -42,5 +35,12 @@ class FreeAgentPool extends Model
     public function isConstructor(): bool
     {
         return $this->entity_type === 'constructor';
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'added_at' => 'datetime',
+        ];
     }
 }

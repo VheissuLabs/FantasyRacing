@@ -34,21 +34,6 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'two_factor_confirmed_at' => 'datetime',
-            'is_super_admin' => 'boolean',
-        ];
-    }
-
     public function managedFranchises(): BelongsToMany
     {
         return $this->belongsToMany(Franchise::class, 'franchise_managers')->withTimestamps();
@@ -89,5 +74,25 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->isSuperAdmin() || $this->managedFranchises()->exists();
+    }
+
+    public function getDisplayName(): string
+    {
+        return $this->name;
+    }
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'two_factor_confirmed_at' => 'datetime',
+            'is_super_admin' => 'boolean',
+        ];
     }
 }

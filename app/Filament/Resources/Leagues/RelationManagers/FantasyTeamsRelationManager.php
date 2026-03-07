@@ -20,10 +20,10 @@ class FantasyTeamsRelationManager extends RelationManager
                 TextColumn::make('name')->searchable(),
                 TextColumn::make('user.name')->label('Owner'),
             ])
-            ->actions([
+            ->recordActions([
                 DeleteAction::make(),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 DeleteBulkAction::make(),
             ]);
     }

@@ -86,7 +86,7 @@ class OpenF1
 
         $this->lastRequestAt = microtime(true);
 
-        $response = Http::timeout(self::TIMEOUT)->get(self::BASE_URL.$endpoint, $params);
+        $response = Http::timeout(self::TIMEOUT)->get(self::BASE_URL . $endpoint, $params);
 
         return collect($response->json() ?? []);
     }

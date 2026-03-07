@@ -8,7 +8,8 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
 class EventResultsRelationManager extends RelationManager
@@ -29,17 +30,17 @@ class EventResultsRelationManager extends RelationManager
             })
             ->recordTitleAttribute('event.name')
             ->columns([
-                Tables\Columns\TextColumn::make('event.name')->label('Event')->searchable(),
-                Tables\Columns\TextColumn::make('finish_position')->label('Pos'),
-                Tables\Columns\TextColumn::make('status'),
-                Tables\Columns\BooleanColumn::make('fastest_lap')->label('FL'),
-                Tables\Columns\BooleanColumn::make('driver_of_the_day')->label('DOTD'),
+                TextColumn::make('event.name')->label('Event')->searchable(),
+                TextColumn::make('finish_position')->label('Pos'),
+                TextColumn::make('status'),
+                IconColumn::make('fastest_lap')->boolean()->label('FL'),
+                IconColumn::make('driver_of_the_day')->boolean()->label('DOTD'),
             ])
-            ->actions([
+            ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 DeleteBulkAction::make(),
             ]);
     }

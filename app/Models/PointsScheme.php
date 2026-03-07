@@ -14,11 +14,12 @@ class PointsScheme extends Model
         'points',
     ];
 
-    protected function casts(): array
+    public static function getPointsForPosition(string $eventType, int $position, int $franchiseId): float
     {
-        return [
-            'points' => 'decimal:2',
-        ];
+        return static::where('franchise_id', $franchiseId)
+            ->where('event_type', $eventType)
+            ->where('position', $position)
+            ->first()?->points ?? 0;
     }
 
     public function franchise(): BelongsTo
@@ -26,11 +27,10 @@ class PointsScheme extends Model
         return $this->belongsTo(Franchise::class);
     }
 
-    public static function getPointsForPosition(string $eventType, int $position, int $franchiseId): float
+    protected function casts(): array
     {
-        return static::where('franchise_id', $franchiseId)
-            ->where('event_type', $eventType)
-            ->where('position', $position)
-            ->first()?->points ?? 0;
+        return [
+            'points' => 'decimal:2',
+        ];
     }
 }

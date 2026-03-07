@@ -29,15 +29,6 @@ class League extends Model
         'draft_completed_at',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'rules' => 'array',
-            'is_active' => 'boolean',
-            'draft_completed_at' => 'datetime',
-        ];
-    }
-
     public function franchise(): BelongsTo
     {
         return $this->belongsTo(Franchise::class);
@@ -130,5 +121,14 @@ class League extends Model
         $size = $this->rule('max_roster_size');
 
         return $size !== null ? (int) $size : null;
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'rules' => 'array',
+            'is_active' => 'boolean',
+            'draft_completed_at' => 'datetime',
+        ];
     }
 }

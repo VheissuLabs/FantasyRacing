@@ -19,13 +19,6 @@ class Franchise extends Model
         'is_active',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'is_active' => 'boolean',
-        ];
-    }
-
     public function seasons(): HasMany
     {
         return $this->hasMany(Season::class);
@@ -71,5 +64,12 @@ class Franchise extends Model
     public function activeSeason(): ?Season
     {
         return $this->seasons()->where('is_active', true)->first();
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
     }
 }

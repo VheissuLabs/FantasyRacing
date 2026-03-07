@@ -19,13 +19,6 @@ class Season extends Model
         'is_active',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'is_active' => 'boolean',
-        ];
-    }
-
     public function franchise(): BelongsTo
     {
         return $this->belongsTo(Franchise::class);
@@ -69,5 +62,12 @@ class Season extends Model
     public function activeEvents(): HasMany
     {
         return $this->hasMany(Event::class)->where('status', '!=', 'cancelled');
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
     }
 }

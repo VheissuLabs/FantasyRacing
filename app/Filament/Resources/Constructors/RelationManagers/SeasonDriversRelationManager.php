@@ -9,7 +9,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
 class SeasonDriversRelationManager extends RelationManager
@@ -30,19 +30,19 @@ class SeasonDriversRelationManager extends RelationManager
             })
             ->recordTitleAttribute('driver.name')
             ->columns([
-                Tables\Columns\TextColumn::make('season.name')->label('Season')->searchable(),
-                Tables\Columns\TextColumn::make('driver.name')->label('Driver')->searchable(),
-                Tables\Columns\TextColumn::make('effective_from')->date(),
-                Tables\Columns\TextColumn::make('effective_to')->date(),
+                TextColumn::make('season.name')->label('Season')->searchable(),
+                TextColumn::make('driver.name')->label('Driver')->searchable(),
+                TextColumn::make('effective_from')->date(),
+                TextColumn::make('effective_to')->date(),
             ])
             ->headerActions([
                 CreateAction::make(),
             ])
-            ->actions([
+            ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 DeleteBulkAction::make(),
             ]);
     }

@@ -14,19 +14,20 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
+use UnitEnum;
 
 class UserResource extends Resource
 {
-    public static function canAccess(): bool
-    {
-        return Auth::user()?->isSuperAdmin() ?? false;
-    }
-
     protected static ?string $model = User::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUser;
 
-    protected static \UnitEnum|string|null $navigationGroup = 'Administration';
+    protected static UnitEnum|string|null $navigationGroup = 'Administration';
+
+    public static function canAccess(): bool
+    {
+        return Auth::user()?->isSuperAdmin() ?? false;
+    }
 
     public static function form(Schema $schema): Schema
     {

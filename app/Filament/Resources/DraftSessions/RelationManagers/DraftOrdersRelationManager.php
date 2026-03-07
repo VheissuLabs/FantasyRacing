@@ -29,7 +29,7 @@ class DraftOrdersRelationManager extends RelationManager
                         default => 'gray',
                     }),
             ])
-            ->actions([])
-            ->bulkActions([]);
+            ->recordActions([])
+            ->toolbarActions([]);
     }
 }

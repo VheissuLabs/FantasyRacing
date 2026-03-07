@@ -29,18 +29,6 @@ class EventResult extends Model
         'notes',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'fastest_lap' => 'boolean',
-            'driver_of_the_day' => 'boolean',
-            'points_eligible' => 'boolean',
-            'q1_time' => 'datetime:H:i:s',
-            'q2_time' => 'datetime:H:i:s',
-            'q3_time' => 'datetime:H:i:s',
-        ];
-    }
-
     public function event(): BelongsTo
     {
         return $this->belongsTo(Event::class);
@@ -64,5 +52,17 @@ class EventResult extends Model
     public function hasPenalty(): bool
     {
         return in_array($this->status, ['dnf', 'dns', 'dsq']);
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'fastest_lap' => 'boolean',
+            'driver_of_the_day' => 'boolean',
+            'points_eligible' => 'boolean',
+            'q1_time' => 'datetime:H:i:s',
+            'q2_time' => 'datetime:H:i:s',
+            'q3_time' => 'datetime:H:i:s',
+        ];
     }
 }

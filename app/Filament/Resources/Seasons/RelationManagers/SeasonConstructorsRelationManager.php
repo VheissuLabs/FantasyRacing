@@ -8,7 +8,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
 class SeasonConstructorsRelationManager extends RelationManager
@@ -22,17 +22,17 @@ class SeasonConstructorsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('constructor.name')
             ->columns([
-                Tables\Columns\TextColumn::make('constructor.name')->label('Constructor')->searchable(),
-                Tables\Columns\TextColumn::make('constructor.slug'),
+                TextColumn::make('constructor.name')->label('Constructor')->searchable(),
+                TextColumn::make('constructor.slug'),
             ])
             ->headerActions([
                 CreateAction::make(),
             ])
-            ->actions([
+            ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 DeleteBulkAction::make(),
             ]);
     }

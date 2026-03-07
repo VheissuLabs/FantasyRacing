@@ -8,8 +8,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables;
-use Filament\Tables\Columns\BooleanColumn;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -40,23 +39,26 @@ class EventPitstopsRelationManager extends RelationManager
                     ->label('Stop Time (s)')
                     ->sortable()
                     ->numeric(decimalPlaces: 3),
-                BooleanColumn::make('is_fastest_of_event')
+                IconColumn::make('is_fastest_of_event')
+                    ->boolean()
                     ->label('Fastest'),
-                Tables\Columns\BadgeColumn::make('data_source')
+                TextColumn::make('data_source')
+                    ->badge()
                     ->label('Source')
-                    ->colors([
-                        'success' => 'jolpica',
-                        'warning' => 'manual',
-                    ]),
+                    ->color(fn (string $state): string => match ($state) {
+                        'jolpica' => 'success',
+                        'manual' => 'warning',
+                        default => 'gray',
+                    }),
             ])
             ->headerActions([
                 CreateAction::make(),
             ])
-            ->actions([
+            ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 DeleteBulkAction::make(),
             ]);
     }

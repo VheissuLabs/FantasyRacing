@@ -17,14 +17,6 @@ class EventPitstop extends Model
         'data_source',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'is_fastest_of_event' => 'boolean',
-            'stop_time_seconds' => 'decimal:3',
-        ];
-    }
-
     public function event(): BelongsTo
     {
         return $this->belongsTo(Event::class);
@@ -38,5 +30,13 @@ class EventPitstop extends Model
     public function driver(): BelongsTo
     {
         return $this->belongsTo(Driver::class);
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'is_fastest_of_event' => 'boolean',
+            'stop_time_seconds' => 'decimal:3',
+        ];
     }
 }

@@ -91,7 +91,7 @@ test('api index filters by franchise slug', function () {
     ]);
 
     $this->actingAs(User::factory()->create(), 'sanctum')
-        ->getJson('/api/v1/leagues?franchise='.$franchiseA->slug)
+        ->getJson('/api/v1/leagues?franchise=' . $franchiseA->slug)
         ->assertOk()
         ->assertJsonCount(1, 'data')
         ->assertJsonPath('data.0.id', $leagueA->id);
@@ -139,7 +139,7 @@ test('api show returns league data', function () {
     ]);
 
     $this->actingAs(User::factory()->create(), 'sanctum')
-        ->getJson('/api/v1/leagues/'.$league->slug)
+        ->getJson('/api/v1/leagues/' . $league->slug)
         ->assertOk()
         ->assertJsonPath('id', $league->id)
         ->assertJsonPath('name', $league->name)
@@ -158,7 +158,7 @@ test('api show blocks private league for unauthenticated user', function () {
         'visibility' => 'private',
     ]);
 
-    $this->getJson('/api/v1/leagues/'.$league->slug)
+    $this->getJson('/api/v1/leagues/' . $league->slug)
         ->assertUnauthorized();
 });
 
@@ -175,7 +175,7 @@ test('api show allows private league for authenticated user', function () {
     ]);
 
     $this->actingAs(User::factory()->create(), 'sanctum')
-        ->getJson('/api/v1/leagues/'.$league->slug)
+        ->getJson('/api/v1/leagues/' . $league->slug)
         ->assertOk()
         ->assertJsonPath('id', $league->id);
 });
@@ -195,7 +195,7 @@ test('api teams returns teams with rosters', function () {
     $team = FantasyTeam::factory()->create(['league_id' => $league->id]);
 
     $this->actingAs(User::factory()->create(), 'sanctum')
-        ->getJson('/api/v1/leagues/'.$league->slug.'/teams')
+        ->getJson('/api/v1/leagues/' . $league->slug . '/teams')
         ->assertOk()
         ->assertJsonCount(1)
         ->assertJsonPath('0.id', $team->id)
@@ -214,7 +214,7 @@ test('api teams blocks private league for unauthenticated user', function () {
         'visibility' => 'private',
     ]);
 
-    $this->getJson('/api/v1/leagues/'.$league->slug.'/teams')
+    $this->getJson('/api/v1/leagues/' . $league->slug . '/teams')
         ->assertUnauthorized();
 });
 
@@ -268,7 +268,7 @@ test('standings api returns ranked standings', function () {
     ]);
 
     $this->actingAs(User::factory()->create(), 'sanctum')
-        ->getJson('/api/v1/leagues/'.$league->slug.'/standings')
+        ->getJson('/api/v1/leagues/' . $league->slug . '/standings')
         ->assertOk()
         ->assertJsonPath('league_id', $league->id)
         ->assertJsonPath('league_name', $league->name)
@@ -293,6 +293,6 @@ test('standings api blocks private league for unauthenticated user', function ()
         'visibility' => 'private',
     ]);
 
-    $this->getJson('/api/v1/leagues/'.$league->slug.'/standings')
+    $this->getJson('/api/v1/leagues/' . $league->slug . '/standings')
         ->assertUnauthorized();
 });

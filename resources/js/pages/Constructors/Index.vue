@@ -1,13 +1,13 @@
 <script setup lang="ts">
     import { Head, Link, router } from '@inertiajs/vue3'
     import { ref } from 'vue'
+    import { Card, CardContent } from '@/components/ui/card'
+    import AppLayout from '@/layouts/AppLayout.vue'
+    import { type BreadcrumbItem } from '@/types'
     import {
         index as constructorsIndex,
         show as constructorShow,
     } from '@/actions/App/Http/Controllers/ConstructorProfileController'
-    import { Card, CardContent } from '@/components/ui/card'
-    import AppLayout from '@/layouts/AppLayout.vue'
-    import { type BreadcrumbItem } from '@/types'
 
     interface Franchise {
         id: number
