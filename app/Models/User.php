@@ -76,6 +76,11 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         return $this->isSuperAdmin() || $this->managedFranchises()->exists();
     }
 
+    public function getDisplayName(): string
+    {
+        return $this->name;
+    }
+
     /**
      * Get the attributes that should be cast.
      *
@@ -89,11 +94,5 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
             'two_factor_confirmed_at' => 'datetime',
             'is_super_admin' => 'boolean',
         ];
-    }
-
-
-    public function getDisplayName():    string
-    {
-        return   $this->name ;
     }
 }
