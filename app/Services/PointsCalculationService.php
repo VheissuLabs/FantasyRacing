@@ -15,6 +15,18 @@ use App\Models\RosterSnapshot;
 
 class PointsCalculationService
 {
+    /** @var array<int, float> */
+    private const FIA_RACE_POINTS = [
+        1 => 25.0, 2 => 18.0, 3 => 15.0, 4 => 12.0, 5 => 10.0,
+        6 => 8.0, 7 => 6.0, 8 => 4.0, 9 => 2.0, 10 => 1.0,
+    ];
+
+    /** @var array<int, float> */
+    private const FIA_SPRINT_POINTS = [
+        1 => 8.0, 2 => 7.0, 3 => 6.0, 4 => 5.0,
+        5 => 4.0, 6 => 3.0, 7 => 2.0, 8 => 1.0,
+    ];
+
     /**
      * Calculate and store fantasy points on event_results (drivers) and
      * event_constructor_results (constructors) for the given event.
@@ -421,16 +433,4 @@ class PointsCalculationService
     {
         return (float) BonusPointsScheme::getBonusPoints($eventType, $bonusKey, $appliesTo, $franchiseId);
     }
-
-    /** @var array<int, float> */
-    private const FIA_RACE_POINTS = [
-        1 => 25.0, 2 => 18.0, 3 => 15.0, 4 => 12.0, 5 => 10.0,
-        6 => 8.0, 7 => 6.0, 8 => 4.0, 9 => 2.0, 10 => 1.0,
-    ];
-
-    /** @var array<int, float> */
-    private const FIA_SPRINT_POINTS = [
-        1 => 8.0, 2 => 7.0, 3 => 6.0, 4 => 5.0,
-        5 => 4.0, 6 => 3.0, 7 => 2.0, 8 => 1.0,
-    ];
 }
