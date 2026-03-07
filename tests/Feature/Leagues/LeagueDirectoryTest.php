@@ -6,10 +6,11 @@ use App\Models\LeagueMember;
 use App\Models\Season;
 use App\Models\User;
 
-test('league index renders', function () {
-    $this->get(route('leagues.index'))->assertOk()->assertInertia(
-        fn ($page) => $page->component('Leagues/Index')
-    );
+test('league index renders for authenticated user', function () {
+    $this->actingAs(User::factory()->create())
+        ->get(route('leagues.index'))->assertOk()->assertInertia(
+            fn ($page) => $page->component('Leagues/Index')
+        );
 });
 
 test('public leagues appear in the directory', function () {
@@ -25,7 +26,8 @@ test('public leagues appear in the directory', function () {
         'is_active' => true,
     ]);
 
-    $this->get(route('leagues.index'))
+    $this->actingAs(User::factory()->create())
+        ->get(route('leagues.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('Leagues/Index')
@@ -33,28 +35,12 @@ test('public leagues appear in the directory', function () {
         );
 });
 
-test('private leagues do not appear in the directory for guests', function () {
-    $franchise = Franchise::factory()->create();
-    $season = Season::factory()->create(['franchise_id' => $franchise->id]);
-    $commissioner = User::factory()->create();
-
-    League::factory()->create([
-        'franchise_id' => $franchise->id,
-        'season_id' => $season->id,
-        'commissioner_id' => $commissioner->id,
-        'visibility' => 'private',
-        'is_active' => true,
-    ]);
-
+test('guests are redirected to login from league index', function () {
     $this->get(route('leagues.index'))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->component('Leagues/Index')
-            ->has('leagues.data', 0)
-        );
+        ->assertRedirect('/login');
 });
 
-test('private leagues do not appear for non-members', function () {
+test('private leagues do not appear in the directory for non-members', function () {
     $franchise = Franchise::factory()->create();
     $season = Season::factory()->create(['franchise_id' => $franchise->id]);
     $commissioner = User::factory()->create();
@@ -104,7 +90,7 @@ test('private leagues appear in the directory for members', function () {
         );
 });
 
-test('guests can view public league detail', function () {
+test('guests are redirected to login from league detail', function () {
     $franchise = Franchise::factory()->create();
     $season = Season::factory()->create(['franchise_id' => $franchise->id]);
     $commissioner = User::factory()->create();
@@ -116,22 +102,7 @@ test('guests can view public league detail', function () {
         'visibility' => 'public',
     ]);
 
-    $this->get(route('leagues.show', $league->slug))->assertOk();
-});
-
-test('guests are forbidden from private league detail', function () {
-    $franchise = Franchise::factory()->create();
-    $season = Season::factory()->create(['franchise_id' => $franchise->id]);
-    $commissioner = User::factory()->create();
-
-    $league = League::factory()->create([
-        'franchise_id' => $franchise->id,
-        'season_id' => $season->id,
-        'commissioner_id' => $commissioner->id,
-        'visibility' => 'private',
-    ]);
-
-    $this->get(route('leagues.show', $league->slug))->assertForbidden();
+    $this->get(route('leagues.show', $league->slug))->assertRedirect('/login');
 });
 
 test('authenticated users can view private league detail', function () {
@@ -174,7 +145,8 @@ test('join_policy filter returns only matching leagues', function () {
         'is_active' => true,
     ]);
 
-    $this->get(route('leagues.index', ['join_policy' => 'open']))
+    $this->actingAs(User::factory()->create())
+        ->get(route('leagues.index', ['join_policy' => 'open']))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('Leagues/Index')
@@ -218,11 +190,12 @@ test('multiple filters combine correctly', function () {
         'is_active' => true,
     ]);
 
-    $this->get(route('leagues.index', [
-        'franchise' => $franchise->slug,
-        'season' => 2025,
-        'join_policy' => 'open',
-    ]))
+    $this->actingAs(User::factory()->create())
+        ->get(route('leagues.index', [
+            'franchise' => $franchise->slug,
+            'season' => 2025,
+            'join_policy' => 'open',
+        ]))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->has('leagues.data', 1)
