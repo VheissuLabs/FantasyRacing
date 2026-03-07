@@ -61,6 +61,9 @@ function lucideDirectImports(): Plugin {
 }
 
 export default defineConfig({
+    build: {
+        sourcemap: false,
+    },
     plugins: [
         lucideDirectImports(),
         laravel({
