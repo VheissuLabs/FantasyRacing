@@ -53,6 +53,7 @@
         fastest_laps: number
         points_total: number
         best_championship: number | null
+        fantasy_points_total: number
     }
 
     interface SeasonStat {
@@ -67,6 +68,7 @@
         points_total: string
         best_finish: number
         championship_position: number
+        fantasy_points_total: string
         season: { id: number; name: string; year: number }
         constructor: ConstructorRef
     }
@@ -153,7 +155,11 @@
                       value: props.seasonStat.fastest_laps,
                   },
                   { label: 'DNFs', value: props.seasonStat.dnfs },
-                  { label: 'Points', value: props.seasonStat.points_total },
+                  { label: 'FIA Points', value: props.seasonStat.points_total },
+                  {
+                      label: 'Fantasy Points',
+                      value: props.seasonStat.fantasy_points_total,
+                  },
                   {
                       label: 'Championship',
                       value: props.seasonStat.championship_position
@@ -176,8 +182,12 @@
                         value: props.careerSummary.fastest_laps,
                     },
                     {
-                        label: 'Points',
+                        label: 'FIA Points',
                         value: props.careerSummary.points_total,
+                    },
+                    {
+                        label: 'Fantasy Points',
+                        value: props.careerSummary.fantasy_points_total,
                     },
                     {
                         label: 'Best Championship',

@@ -66,6 +66,7 @@ class ConstructorProfileController extends Controller
             'fastest_laps' => $stats->sum('fastest_laps'),
             'points_total' => $stats->sum('points_total'),
             'best_championship' => $stats->min('championship_position'),
+            'fantasy_points_total' => $stats->sum('fantasy_points_total'),
         ];
 
         $seasonStats = $constructor->constructorSeasonStats()
