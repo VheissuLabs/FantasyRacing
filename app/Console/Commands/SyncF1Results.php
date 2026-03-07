@@ -15,8 +15,6 @@ use App\Services\Jolpica;
 use App\Services\OpenF1;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 
 class SyncF1Results extends Command
 {
@@ -673,24 +671,13 @@ class SyncF1Results extends Command
         $synced = 0;
 
         foreach ($driversNeedingPhotos as $number => $seasonDriver) {
-            $openF1Driver = $openF1Drivers[$number] ?? null;
-            $headshotUrl = $openF1Driver['headshot_url'] ?? null;
+            $headshotUrl = $openF1Drivers[$number]['headshot_url'] ?? null;
 
             if (! $headshotUrl) {
                 continue;
             }
 
-            $response = Http::timeout(10)->get($headshotUrl);
-
-            if (! $response->successful()) {
-                continue;
-            }
-
-            $extension = pathinfo(parse_url($headshotUrl, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'png';
-            $filename = "drivers/{$seasonDriver->driver->slug}.{$extension}";
-
-            Storage::disk('public')->put($filename, $response->body());
-            $seasonDriver->driver->update(['photo_path' => $filename]);
+            $seasonDriver->driver->update(['photo_path' => $headshotUrl]);
             $synced++;
         }
 
