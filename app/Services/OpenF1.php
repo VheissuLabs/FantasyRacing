@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 
@@ -86,7 +87,11 @@ class OpenF1
 
         $this->lastRequestAt = microtime(true);
 
-        $response = Http::timeout(self::TIMEOUT)->get(self::BASE_URL . $endpoint, $params);
+        try {
+            $response = Http::timeout(self::TIMEOUT)->get(self::BASE_URL . $endpoint, $params);
+        } catch (ConnectionException) {
+            return collect();
+        }
 
         $data = $response->json();
 

@@ -3,8 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Driver;
-use App\Models\EventResult;
-use App\Models\Franchise;
 use App\Models\Season;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,7 +12,8 @@ class DriverProfileController extends Controller
 {
     public function index(Request $request): Response
     {
-        $franchiseFilter = $request->query('franchise');
+        $franchiseFilter = $request->cookie('franchise');
+        $seasonId = $request->cookie('season_id');
 
         $drivers = Driver::query()
             ->where('is_active', true)
@@ -22,34 +21,34 @@ class DriverProfileController extends Controller
                 'country',
                 'franchise',
                 'seasonDrivers' => fn ($query) => $query
-                    ->whereNull('effective_to')
-                    ->whereHas('season', fn ($query) => $query->where('is_active', true))
+                    ->when(
+                        $seasonId,
+                        fn ($q) => $q->where('season_id', $seasonId),
+                        fn ($q) => $q->whereHas('season', fn ($sq) => $sq->where('is_active', true)),
+                    )
                     ->with('constructor:id,name,slug'),
             ])
-            ->when($franchiseFilter, fn ($query) => $query->whereHas('franchise', fn ($query) => $query->where('slug', $franchiseFilter)))
+            ->when($franchiseFilter, fn ($query) => $query->whereHas('franchise', fn ($q) => $q->where('slug', $franchiseFilter)))
+            ->when($seasonId, fn ($query) => $query->whereHas('seasonDrivers', fn ($q) => $q->where('season_id', $seasonId)))
             ->orderBy('name')
             ->paginate(24)
             ->withQueryString();
 
         return Inertia::render('Drivers/Index', [
             'drivers' => $drivers,
-            'franchises' => Franchise::where('is_active', true)->orderBy('name')->get(['id', 'name', 'slug']),
-            'filters' => [
-                'franchise' => $franchiseFilter,
-            ],
         ]);
     }
 
-    public function show(Driver $driver): Response
+    public function show(Request $request, Driver $driver): Response
     {
         $driver->load(['country', 'franchise']);
 
-        $activeSeason = $driver->franchise->activeSeason();
+        $seasonId = $request->cookie('season_id');
+        $season = $seasonId ? Season::find($seasonId) : $driver->franchise->activeSeason();
 
-        $currentSeasonDriver = $activeSeason
+        $currentSeasonDriver = $season
             ? $driver->seasonDrivers()
-                ->where('season_id', $activeSeason->id)
-                ->whereNull('effective_to')
+                ->where('season_id', $season->id)
                 ->with('constructor')
                 ->first()
             : null;
@@ -63,9 +62,7 @@ class DriverProfileController extends Controller
             'podiums' => $stats->sum('podiums'),
             'poles' => $stats->sum('poles'),
             'fastest_laps' => $stats->sum('fastest_laps'),
-            'points_total' => $stats->sum('points_total'),
             'best_championship' => $stats->min('championship_position'),
-            'fantasy_points_total' => EventResult::where('driver_id', $driver->id)->sum('fantasy_points'),
         ];
 
         $seasonStats = $driver->driverSeasonStats()
@@ -73,19 +70,26 @@ class DriverProfileController extends Controller
             ->orderByDesc(Season::query()->select('year')->whereColumn('seasons.id', 'driver_season_stats.season_id'))
             ->get();
 
-        $latestStat = $seasonStats->first();
-        $fantasyStats = [
-            'ownership_pct' => $latestStat?->fantasy_ownership_pct,
-            'avg_points' => $stats->avg('fantasy_points_total'),
-            'best_haul' => $stats->max('fantasy_points_total'),
-        ];
-
-        $recentResults = $driver->eventResults()
+        $allResults = $driver->eventResults()
             ->whereHas('event', fn ($query) => $query->where('status', 'completed'))
             ->with(['event.track:id,name', 'event:id,name,type,season_id,track_id', 'constructor:id,name,slug'])
-            ->latest('id')
-            ->limit(10)
+            ->join('events', 'events.id', '=', 'event_results.event_id')
+            ->join('seasons', 'seasons.id', '=', 'events.season_id')
+            ->orderByDesc('seasons.year')
+            ->orderBy('events.sort_order')
+            ->select('event_results.*')
             ->get();
+
+        $resultsBySeason = $allResults->groupBy(fn ($r) => $r->event->season_id)
+            ->map(function ($results) {
+                $season = Season::find($results->first()->event->season_id);
+
+                return [
+                    'season' => $season->only('id', 'name', 'year'),
+                    'results' => $results->values(),
+                ];
+            })
+            ->values();
 
         $availableSeasons = $driver->driverSeasonStats()
             ->join('seasons', 'seasons.id', '=', 'driver_season_stats.season_id')
@@ -97,8 +101,7 @@ class DriverProfileController extends Controller
             'currentSeasonDriver' => $currentSeasonDriver,
             'careerSummary' => $careerSummary,
             'seasonStats' => $seasonStats,
-            'fantasyStats' => $fantasyStats,
-            'recentResults' => $recentResults,
+            'resultsBySeason' => $resultsBySeason,
             'availableSeasons' => $availableSeasons,
         ]);
     }

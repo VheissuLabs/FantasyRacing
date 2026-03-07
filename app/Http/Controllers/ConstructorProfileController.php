@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Constructor;
 use App\Models\EventConstructorResult;
-use App\Models\Franchise;
 use App\Models\Season;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,35 +13,33 @@ class ConstructorProfileController extends Controller
 {
     public function index(Request $request): Response
     {
-        $franchiseFilter = $request->query('franchise');
+        $franchiseFilter = $request->cookie('franchise');
+        $seasonId = $request->cookie('season_id');
 
         $constructors = Constructor::query()
             ->where('is_active', true)
             ->with(['franchise', 'country'])
-            ->when($franchiseFilter, fn ($query) => $query->whereHas('franchise', fn ($query) => $query->where('slug', $franchiseFilter)))
+            ->when($franchiseFilter, fn ($query) => $query->whereHas('franchise', fn ($q) => $q->where('slug', $franchiseFilter)))
+            ->when($seasonId, fn ($query) => $query->whereHas('seasonConstructors', fn ($q) => $q->where('season_id', $seasonId)))
             ->orderBy('name')
             ->paginate(24)
             ->withQueryString();
 
         return Inertia::render('Constructors/Index', [
             'constructors' => $constructors,
-            'franchises' => Franchise::where('is_active', true)->orderBy('name')->get(['id', 'name', 'slug']),
-            'filters' => [
-                'franchise' => $franchiseFilter,
-            ],
         ]);
     }
 
-    public function show(Constructor $constructor): Response
+    public function show(Request $request, Constructor $constructor): Response
     {
         $constructor->load(['franchise', 'country']);
 
-        $activeSeason = $constructor->franchise->activeSeason();
+        $seasonId = $request->cookie('season_id');
+        $season = $seasonId ? Season::find($seasonId) : $constructor->franchise->activeSeason();
 
-        $currentDrivers = $activeSeason
+        $currentDrivers = $season
             ? $constructor->seasonDrivers()
-                ->where('season_id', $activeSeason->id)
-                ->whereNull('effective_to')
+                ->where('season_id', $season->id)
                 ->with('driver.country')
                 ->get()
                 ->map(fn ($sd) => [
@@ -61,12 +58,7 @@ class ConstructorProfileController extends Controller
             'races_entered' => $stats->sum('races_entered'),
             'wins' => $stats->sum('wins'),
             'podiums' => $stats->sum('podiums'),
-            'one_twos' => $stats->sum('one_twos'),
-            'poles' => $stats->sum('poles'),
-            'fastest_laps' => $stats->sum('fastest_laps'),
-            'points_total' => $stats->sum('points_total'),
             'best_championship' => $stats->min('championship_position'),
-            'fantasy_points_total' => EventConstructorResult::where('constructor_id', $constructor->id)->sum('fantasy_points'),
         ];
 
         $seasonStats = $constructor->constructorSeasonStats()
@@ -74,49 +66,50 @@ class ConstructorProfileController extends Controller
             ->orderByDesc(Season::query()->select('year')->whereColumn('seasons.id', 'constructor_season_stats.season_id'))
             ->get();
 
-        $latestStat = $seasonStats->first();
-        $fantasyStats = [
-            'ownership_pct' => $latestStat?->fantasy_ownership_pct,
-            'avg_points' => $stats->avg('fantasy_points_total'),
-            'best_haul' => $stats->max('fantasy_points_total'),
-        ];
-
-        $recentEventIds = $constructor->eventResults()
-            ->whereHas('event', fn ($query) => $query->where('status', 'completed'))
-            ->latest('event_id')
-            ->pluck('event_id')
-            ->unique()
-            ->take(5);
-
         $constructorResults = EventConstructorResult::where('constructor_id', $constructor->id)
-            ->whereIn('event_id', $recentEventIds)
             ->get()
             ->keyBy('event_id');
 
-        $recentResults = $constructor->eventResults()
-            ->whereIn('event_id', $recentEventIds)
-            ->with(['event.track:id,name', 'event:id,name,type,track_id', 'driver:id,name,slug'])
-            ->orderByDesc('event_id')
-            ->get()
-            ->groupBy('event_id')
-            ->map(function ($results) use ($constructorResults) {
-                $eventId = $results->first()->event_id;
-                $constructorResult = $constructorResults[$eventId] ?? null;
+        $allResults = $constructor->eventResults()
+            ->whereHas('event', fn ($query) => $query->where('status', 'completed'))
+            ->with(['event.track:id,name', 'event:id,name,type,season_id,track_id', 'driver:id,name,slug'])
+            ->join('events', 'events.id', '=', 'event_results.event_id')
+            ->join('seasons', 'seasons.id', '=', 'events.season_id')
+            ->orderByDesc('seasons.year')
+            ->orderBy('events.sort_order')
+            ->select('event_results.*')
+            ->get();
+
+        $resultsBySeason = $allResults->groupBy(fn ($r) => $r->event->season_id)
+            ->map(function ($seasonResults) use ($constructorResults) {
+                $season = Season::find($seasonResults->first()->event->season_id);
+
+                $eventGroups = $seasonResults->groupBy('event_id')
+                    ->map(function ($results) use ($constructorResults) {
+                        $eventId = $results->first()->event_id;
+                        $constructorResult = $constructorResults[$eventId] ?? null;
+
+                        return [
+                            'event' => $results->first()->event->only('id', 'name', 'type'),
+                            'track' => $results->first()->event->track?->only('id', 'name'),
+                            'fantasy_points' => $constructorResult?->fantasy_points,
+                            'results' => $results->map(fn ($r) => [
+                                'driver' => $r->driver->only('id', 'name', 'slug'),
+                                'grid_position' => $r->grid_position,
+                                'finish_position' => $r->finish_position,
+                                'status' => $r->status,
+                                'fastest_lap' => $r->fastest_lap,
+                                'driver_of_the_day' => $r->driver_of_the_day,
+                                'fia_points' => $r->fia_points,
+                                'fantasy_points' => $r->fantasy_points,
+                            ]),
+                        ];
+                    })
+                    ->values();
 
                 return [
-                    'event' => $results->first()->event->only('id', 'name', 'type'),
-                    'track' => $results->first()->event->track?->only('id', 'name'),
-                    'fantasy_points' => $constructorResult?->fantasy_points,
-                    'results' => $results->map(fn ($r) => [
-                        'driver' => $r->driver->only('id', 'name', 'slug'),
-                        'grid_position' => $r->grid_position,
-                        'finish_position' => $r->finish_position,
-                        'status' => $r->status,
-                        'fastest_lap' => $r->fastest_lap,
-                        'driver_of_the_day' => $r->driver_of_the_day,
-                        'fia_points' => $r->fia_points,
-                        'fantasy_points' => $r->fantasy_points,
-                    ]),
+                    'season' => $season->only('id', 'name', 'year'),
+                    'events' => $eventGroups,
                 ];
             })
             ->values();
@@ -131,8 +124,7 @@ class ConstructorProfileController extends Controller
             'currentDrivers' => $currentDrivers,
             'careerSummary' => $careerSummary,
             'seasonStats' => $seasonStats,
-            'fantasyStats' => $fantasyStats,
-            'recentResults' => $recentResults,
+            'resultsBySeason' => $resultsBySeason,
             'availableSeasons' => $availableSeasons,
         ]);
     }

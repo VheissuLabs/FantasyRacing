@@ -1,6 +1,5 @@
 <script setup lang="ts">
-    import { Head, Link, router } from '@inertiajs/vue3'
-    import { ref } from 'vue'
+    import { Head, Link } from '@inertiajs/vue3'
     import { Card, CardContent } from '@/components/ui/card'
     import AppLayout from '@/layouts/AppLayout.vue'
     import { type BreadcrumbItem } from '@/types'
@@ -8,12 +7,6 @@
         index as constructorsIndex,
         show as constructorShow,
     } from '@/actions/App/Http/Controllers/ConstructorProfileController'
-
-    interface Franchise {
-        id: number
-        name: string
-        slug: string
-    }
 
     interface ConstructorItem {
         id: number
@@ -37,29 +30,13 @@
         prev_page_url: string | null
     }
 
-    const props = defineProps<{
+    defineProps<{
         constructors: Paginator<ConstructorItem>
-        franchises: Franchise[]
-        filters: { franchise: string | null }
     }>()
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Constructors', href: constructorsIndex().url },
     ]
-
-    const franchiseFilter = ref(props.filters.franchise ?? '')
-
-    function applyFilters() {
-        router.get(
-            constructorsIndex.url({
-                query: {
-                    franchise: franchiseFilter.value || undefined,
-                },
-            }),
-            {},
-            { preserveScroll: true, replace: true },
-        )
-    }
 </script>
 
 <template>
@@ -67,24 +44,6 @@
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="px-4 py-8 sm:px-6 lg:px-8">
             <h1 class="mb-6 text-2xl font-bold">Constructors</h1>
-
-            <!-- Filters -->
-            <div class="mb-6 flex flex-wrap items-center gap-3">
-                <select
-                    v-model="franchiseFilter"
-                    @change="applyFilters"
-                    class="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs ring-offset-background placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
-                >
-                    <option value="">All Franchises</option>
-                    <option
-                        v-for="franchise in franchises"
-                        :key="franchise.id"
-                        :value="franchise.slug"
-                    >
-                        {{ franchise.name }}
-                    </option>
-                </select>
-            </div>
 
             <!-- Grid -->
             <div

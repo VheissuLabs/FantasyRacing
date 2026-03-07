@@ -14,13 +14,8 @@ use App\Http\Controllers\Leagues\TradeController;
 use App\Models\Event;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use Laravel\Fortify\Features;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canRegister' => Features::enabled(Features::registration()),
-    ]);
-})->name('home');
+Route::redirect('/', '/drivers')->name('home');
 
 Route::get('dashboard', function () {
     $nextEvent = Event::where('scheduled_at', '>', now())
@@ -58,15 +53,13 @@ Route::get('constructors', [ConstructorProfileController::class, 'index'])->name
 Route::get('constructors/{constructor:slug}', [ConstructorProfileController::class, 'show'])->name('constructors.show');
 Route::get('constructors/{constructor:slug}/seasons/{season}', [ConstructorProfileController::class, 'season'])->name('constructors.season');
 
-// League directory (public)
-Route::get('leagues', [LeagueDirectoryController::class, 'index'])->name('leagues.index');
-Route::get('leagues/create', [LeagueController::class, 'create'])->middleware('auth')->name('leagues.create');
-Route::get('leagues/{league:slug}', [LeagueDirectoryController::class, 'show'])->name('leagues.show');
-
-// League authenticated routes
-Route::middleware('auth')->group(function () {
-    // League creation
+// Dashboard & Leagues (authenticated)
+Route::middleware(['auth', 'verified'])->prefix('dashboard')->group(function () {
+    // League directory & creation
+    Route::get('leagues', [LeagueDirectoryController::class, 'index'])->name('leagues.index');
+    Route::get('leagues/create', [LeagueController::class, 'create'])->name('leagues.create');
     Route::post('leagues', [LeagueController::class, 'store'])->name('leagues.store');
+    Route::get('leagues/{league:slug}', [LeagueDirectoryController::class, 'show'])->name('leagues.show');
 
     // Join flows
     Route::post('leagues/{league:slug}/join', [LeagueJoinController::class, 'join'])->name('leagues.join');

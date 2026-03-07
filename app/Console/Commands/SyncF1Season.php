@@ -126,6 +126,18 @@ class SyncF1Season extends Command
 
         $constructors = $jolpica->getConstructors($year);
 
+        // Build a set of driver IDs who appeared in qualifying or race sessions (not practice)
+        $raceDriverIds = $jolpica->getAllRaceResults($year)
+            ->flatMap(fn ($race) => collect($race['Results'] ?? [])->pluck('Driver.driverId'))
+            ->unique();
+
+        $qualDriverIds = $jolpica->getAllQualifyingResults($year)
+            ->flatMap(fn ($race) => collect($race['QualifyingResults'] ?? [])->pluck('Driver.driverId'))
+            ->unique();
+
+        $competitiveDriverIds = $raceDriverIds->merge($qualDriverIds)->unique();
+
+        // Get drivers from constructor endpoints, but only keep those who raced or qualified
         foreach ($constructors as $constructorData) {
             $constructorId = $constructorData['constructorId'];
             $constructorName = $constructorData['name'];
@@ -134,6 +146,12 @@ class SyncF1Season extends Command
 
             foreach ($drivers as $driverData) {
                 $driverId = $driverData['driverId'];
+
+                // Skip practice-only drivers
+                if ($competitiveDriverIds->isNotEmpty() && ! $competitiveDriverIds->contains($driverId)) {
+                    continue;
+                }
+
                 $permanentNumber = isset($driverData['permanentNumber'])
                     ? (int) $driverData['permanentNumber']
                     : 0;

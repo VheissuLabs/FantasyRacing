@@ -15,6 +15,7 @@ use App\Services\Jolpica;
 use App\Services\OpenF1;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class SyncF1Results extends Command
 {
@@ -553,11 +554,21 @@ class SyncF1Results extends Command
 
     protected function resolveDriver(int $number, array $result, Event $event, Constructor $constructor, Collection $driverMap): Driver
     {
-        if ($driver = ($driverMap[$number] ?? null)) {
-            return $driver;
+        // First try to match by number, but verify the slug matches to avoid
+        // collisions (e.g. Verstappen #3 vs Ricciardo #3 in the same season)
+        $candidate = $driverMap[$number] ?? null;
+
+        if ($candidate && $candidate->slug === Str::slug(trim($result['Driver']['givenName'] . ' ' . $result['Driver']['familyName']))) {
+            return $candidate;
         }
 
+        // Check if this driver already exists in the map under a different number
         $driver = $this->f1->resolveDriver($result['Driver'], $event->season->franchise);
+        $existingEntry = $driverMap->first(fn ($d) => $d->id === $driver->id);
+
+        if ($existingEntry) {
+            return $existingEntry;
+        }
 
         SeasonDriver::firstOrCreate(
             [
