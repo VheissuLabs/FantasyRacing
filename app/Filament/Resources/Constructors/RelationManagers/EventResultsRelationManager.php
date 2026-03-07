@@ -8,7 +8,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
 class EventResultsRelationManager extends RelationManager
@@ -29,16 +29,16 @@ class EventResultsRelationManager extends RelationManager
             })
             ->recordTitleAttribute('driver.name')
             ->columns([
-                Tables\Columns\TextColumn::make('event.name')->label('Event')->searchable(),
-                Tables\Columns\TextColumn::make('driver.name')->label('Driver')->searchable(),
-                Tables\Columns\TextColumn::make('finish_position')->label('Pos'),
-                Tables\Columns\TextColumn::make('status'),
+                TextColumn::make('event.name')->label('Event')->searchable(),
+                TextColumn::make('driver.name')->label('Driver')->searchable(),
+                TextColumn::make('finish_position')->label('Pos'),
+                TextColumn::make('status'),
             ])
-            ->actions([
+            ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 DeleteBulkAction::make(),
             ]);
     }

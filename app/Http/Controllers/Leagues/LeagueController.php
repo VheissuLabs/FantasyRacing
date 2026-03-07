@@ -7,6 +7,8 @@ use App\Http\Requests\Leagues\StoreLeagueRequest;
 use App\Models\Franchise;
 use App\Models\League;
 use App\Models\LeagueMember;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -20,7 +22,7 @@ class LeagueController extends Controller
         ]);
     }
 
-    public function store(StoreLeagueRequest $request): \Illuminate\Http\RedirectResponse
+    public function store(StoreLeagueRequest $request): RedirectResponse
     {
         $data = $request->validated();
         $user = $request->user();
@@ -38,10 +40,10 @@ class LeagueController extends Controller
         }
 
         $league = League::create([
-            ...\Illuminate\Support\Arr::except($data, ['rules']),
+            ...Arr::except($data, ['rules']),
             'season_id' => $season->id,
             'max_teams' => $maxTeams,
-            'slug' => Str::slug($data['name']).'-'.Str::random(6),
+            'slug' => Str::slug($data['name']) . '-' . Str::random(6),
             'commissioner_id' => $user->id,
             'invite_code' => $data['join_policy'] === 'invite_only' ? Str::upper(Str::random(8)) : null,
             'is_active' => true,

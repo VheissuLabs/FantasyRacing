@@ -16,6 +16,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class FantasyTeamResource extends Resource
 {
@@ -23,7 +24,7 @@ class FantasyTeamResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
-    protected static \UnitEnum|string|null $navigationGroup = 'Fantasy';
+    protected static UnitEnum|string|null $navigationGroup = 'Fantasy';
 
     public static function form(Schema $schema): Schema
     {

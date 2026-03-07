@@ -26,10 +26,10 @@ class MembersRelationManager extends RelationManager
                     }),
                 TextColumn::make('joined_at')->label('Joined')->date(),
             ])
-            ->actions([
+            ->recordActions([
                 DeleteAction::make(),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 DeleteBulkAction::make(),
             ]);
     }

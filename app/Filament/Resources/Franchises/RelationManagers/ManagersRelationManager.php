@@ -7,7 +7,7 @@ use Filament\Actions\AttachAction;
 use Filament\Actions\DetachAction;
 use Filament\Actions\DetachBulkAction;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
 
@@ -19,14 +19,16 @@ class ManagersRelationManager extends RelationManager
 
     public function table(Table $table): Table
     {
-        $isSuperAdmin = Auth::user()?->isSuperAdmin() ?? false;
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+        $isSuperAdmin = $user?->isSuperAdmin() ?? false;
 
         return $table
             ->recordTitleAttribute('name')
             ->columns([
-                Tables\Columns\TextColumn::make('name')->searchable(),
-                Tables\Columns\TextColumn::make('email')->searchable(),
-                Tables\Columns\TextColumn::make('pivot.created_at')
+                TextColumn::make('name')->searchable(),
+                TextColumn::make('email')->searchable(),
+                TextColumn::make('pivot.created_at')
                     ->label('Assigned At')
                     ->dateTime(),
             ])
@@ -35,11 +37,11 @@ class ManagersRelationManager extends RelationManager
                     ->preloadRecordSelect()
                     ->visible($isSuperAdmin),
             ])
-            ->actions([
+            ->recordActions([
                 DetachAction::make()
                     ->visible($isSuperAdmin),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 DetachBulkAction::make()
                     ->visible($isSuperAdmin),
             ]);

@@ -31,7 +31,7 @@ class DraftPicksRelationManager extends RelationManager
                 IconColumn::make('is_auto_pick')->label('Auto Pick')->boolean(),
                 TextColumn::make('picked_at')->label('Picked At')->dateTime(),
             ])
-            ->actions([])
-            ->bulkActions([]);
+            ->recordActions([])
+            ->toolbarActions([]);
     }
 }

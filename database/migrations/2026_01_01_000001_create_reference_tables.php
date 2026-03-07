@@ -1,5 +1,6 @@
 <?php
 
+use Database\Seeders\CountrySeeder;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -30,7 +31,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        (new Database\Seeders\CountrySeeder)->run();
+        (new CountrySeeder)->run();
 
         Schema::create('franchise_managers', function (Blueprint $table) {
             $table->id();

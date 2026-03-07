@@ -8,7 +8,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
@@ -23,11 +23,11 @@ class EventsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('name')
             ->columns([
-                Tables\Columns\TextColumn::make('name')->searchable(),
-                Tables\Columns\TextColumn::make('track.name')->label('Track'),
-                Tables\Columns\TextColumn::make('type'),
-                Tables\Columns\TextColumn::make('scheduled_at')->dateTime(),
-                Tables\Columns\TextColumn::make('status'),
+                TextColumn::make('name')->searchable(),
+                TextColumn::make('track.name')->label('Track'),
+                TextColumn::make('type'),
+                TextColumn::make('scheduled_at')->dateTime(),
+                TextColumn::make('status'),
             ])
             ->filters([
                 SelectFilter::make('type')->options([
@@ -45,11 +45,11 @@ class EventsRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make(),
             ])
-            ->actions([
+            ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 DeleteBulkAction::make(),
             ]);
     }

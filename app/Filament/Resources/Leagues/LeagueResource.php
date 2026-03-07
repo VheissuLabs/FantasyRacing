@@ -18,6 +18,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class LeagueResource extends Resource
 {
@@ -25,7 +26,7 @@ class LeagueResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTrophy;
 
-    protected static \UnitEnum|string|null $navigationGroup = 'Fantasy';
+    protected static UnitEnum|string|null $navigationGroup = 'Fantasy';
 
     public static function form(Schema $schema): Schema
     {

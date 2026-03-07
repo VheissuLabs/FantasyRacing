@@ -83,7 +83,7 @@ function createPointsScenario(): array
     FantasyTeamRoster::create(['fantasy_team_id' => $team->id, 'entity_type' => 'driver', 'entity_id' => $drivers[2]->id, 'in_seat' => false, 'acquired_at' => now()]);
     FantasyTeamRoster::create(['fantasy_team_id' => $team->id, 'entity_type' => 'constructor', 'entity_id' => $constructors[0]->id, 'in_seat' => true, 'acquired_at' => now()]);
 
-    return compact('franchise', 'season', 'league', 'team', 'drivers', 'constructors', 'track') + ['user' => $commissioner];
+    return ['franchise' => $franchise, 'season' => $season, 'league' => $league, 'team' => $team, 'drivers' => $drivers, 'constructors' => $constructors, 'track' => $track, 'user' => $commissioner];
 }
 
 /**

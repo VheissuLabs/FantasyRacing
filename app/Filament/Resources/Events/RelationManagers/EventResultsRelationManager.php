@@ -8,7 +8,8 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
 class EventResultsRelationManager extends RelationManager
@@ -22,21 +23,21 @@ class EventResultsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('driver.name')
             ->columns([
-                Tables\Columns\TextColumn::make('finish_position')->label('Pos'),
-                Tables\Columns\TextColumn::make('driver.name')->label('Driver')->searchable(),
-                Tables\Columns\TextColumn::make('constructor.name')->label('Constructor'),
-                Tables\Columns\TextColumn::make('status'),
-                Tables\Columns\BooleanColumn::make('fastest_lap')->label('FL'),
-                Tables\Columns\BooleanColumn::make('driver_of_the_day')->label('DOTD'),
+                TextColumn::make('finish_position')->label('Pos'),
+                TextColumn::make('driver.name')->label('Driver')->searchable(),
+                TextColumn::make('constructor.name')->label('Constructor'),
+                TextColumn::make('status'),
+                IconColumn::make('fastest_lap')->boolean()->label('FL'),
+                IconColumn::make('driver_of_the_day')->boolean()->label('DOTD'),
             ])
             ->headerActions([
                 CreateAction::make(),
             ])
-            ->actions([
+            ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 DeleteBulkAction::make(),
             ]);
     }

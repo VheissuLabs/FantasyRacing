@@ -13,6 +13,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class PointsSchemeResource extends Resource
 {
@@ -20,7 +21,7 @@ class PointsSchemeResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedListBullet;
 
-    protected static \UnitEnum|string|null $navigationGroup = 'Scoring';
+    protected static UnitEnum|string|null $navigationGroup = 'Scoring';
 
     protected static ?string $navigationLabel = 'Position Points';
 
