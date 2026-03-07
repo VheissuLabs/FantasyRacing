@@ -16,7 +16,7 @@ class TrackFactory extends Factory
         return [
             'franchise_id' => Franchise::factory(),
             'country_id' => Country::factory(),
-            'name' => fake()->city().' Circuit',
+            'name' => fake()->city() . ' Circuit',
             'location' => fake()->city(),
             'country' => fake()->country(),
         ];

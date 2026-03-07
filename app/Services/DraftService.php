@@ -66,51 +66,6 @@ class DraftService
     }
 
     /**
-     * Build draft order rows from a given first-round team sequence.
-     *
-     * @param  list<int>  $teams
-     */
-    protected function generateOrderWithTeamSequence(DraftSession $session, array $teams): void
-    {
-        if (count($teams) === 0) {
-            throw new RuntimeException('Cannot generate draft order: league has no fantasy teams.');
-        }
-
-        $totalRounds = 4;
-        $pickNumber = 1;
-        $rows = [];
-
-        for ($round = 1; $round <= $totalRounds; $round++) {
-            $roundTeams = ($session->type === 'snake' && $round % 2 === 0)
-                ? array_reverse($teams)
-                : $teams;
-
-            foreach ($roundTeams as $position => $teamId) {
-                $rows[] = [
-                    'draft_session_id' => $session->id,
-                    'pick_number' => $pickNumber,
-                    'round' => $round,
-                    'round_pick' => $position + 1,
-                    'fantasy_team_id' => $teamId,
-                    'entity_type_restriction' => $round === 1 ? 'constructor' : 'driver',
-                    'status' => 'pending',
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-                $pickNumber++;
-            }
-        }
-
-        DraftOrder::where('draft_session_id', $session->id)->delete();
-        DraftOrder::insert($rows);
-
-        $session->update([
-            'total_picks' => $pickNumber - 1,
-            'current_pick_number' => 1,
-        ]);
-    }
-
-    /**
      * Randomize the first-round team order, then regenerate all draft orders.
      */
     public function randomizeOrder(DraftSession $session): void
@@ -325,6 +280,51 @@ class DraftService
         });
 
         broadcast(new DraftRestarted($session));
+    }
+
+    /**
+     * Build draft order rows from a given first-round team sequence.
+     *
+     * @param  list<int>  $teams
+     */
+    protected function generateOrderWithTeamSequence(DraftSession $session, array $teams): void
+    {
+        if (count($teams) === 0) {
+            throw new RuntimeException('Cannot generate draft order: league has no fantasy teams.');
+        }
+
+        $totalRounds = 4;
+        $pickNumber = 1;
+        $rows = [];
+
+        for ($round = 1; $round <= $totalRounds; $round++) {
+            $roundTeams = ($session->type === 'snake' && $round % 2 === 0)
+                ? array_reverse($teams)
+                : $teams;
+
+            foreach ($roundTeams as $position => $teamId) {
+                $rows[] = [
+                    'draft_session_id' => $session->id,
+                    'pick_number' => $pickNumber,
+                    'round' => $round,
+                    'round_pick' => $position + 1,
+                    'fantasy_team_id' => $teamId,
+                    'entity_type_restriction' => $round === 1 ? 'constructor' : 'driver',
+                    'status' => 'pending',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+                $pickNumber++;
+            }
+        }
+
+        DraftOrder::where('draft_session_id', $session->id)->delete();
+        DraftOrder::insert($rows);
+
+        $session->update([
+            'total_picks' => $pickNumber - 1,
+            'current_pick_number' => 1,
+        ]);
     }
 
     // -------------------------------------------------------------------------

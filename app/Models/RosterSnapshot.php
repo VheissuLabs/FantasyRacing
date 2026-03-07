@@ -13,13 +13,6 @@ class RosterSnapshot extends Model
         'snapshot',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'snapshot' => 'array',
-        ];
-    }
-
     public function event(): BelongsTo
     {
         return $this->belongsTo(Event::class);
@@ -28,5 +21,12 @@ class RosterSnapshot extends Model
     public function fantasyTeam(): BelongsTo
     {
         return $this->belongsTo(FantasyTeam::class);
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'snapshot' => 'array',
+        ];
     }
 }

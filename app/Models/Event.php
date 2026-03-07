@@ -28,15 +28,6 @@ class Event extends Model
         'last_synced_at',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'scheduled_at' => 'datetime',
-            'locked_at' => 'datetime',
-            'last_synced_at' => 'datetime',
-        ];
-    }
-
     public function season(): BelongsTo
     {
         return $this->belongsTo(Season::class);
@@ -70,5 +61,14 @@ class Event extends Model
     public function isCompleted(): bool
     {
         return $this->status === 'completed';
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'scheduled_at' => 'datetime',
+            'locked_at' => 'datetime',
+            'last_synced_at' => 'datetime',
+        ];
     }
 }

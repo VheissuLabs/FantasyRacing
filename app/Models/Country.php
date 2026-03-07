@@ -11,6 +11,15 @@ class Country extends Model
     /** @use HasFactory<\Database\Factories\CountryFactory> */
     use HasFactory;
 
+    /**
+     * Jolpica demonyms that don't match the countries dataset directly.
+     *
+     * @var array<string, string>
+     */
+    protected static array $jolpicaAliases = [
+        'New Zealander' => 'New Zealand',
+    ];
+
     protected $fillable = [
         'name',
         'iso2',
@@ -19,15 +28,6 @@ class Country extends Model
         'region',
         'subregion',
         'emoji',
-    ];
-
-    /**
-     * Jolpica demonyms that don't match the countries dataset directly.
-     *
-     * @var array<string, string>
-     */
-    protected static array $jolpicaAliases = [
-        'New Zealander' => 'New Zealand',
     ];
 
     /**

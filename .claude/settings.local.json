@@ -34,7 +34,11 @@
       "Bash(gh pr:*)",
       "Bash(npx shadcn-vue@latest:*)",
       "Bash(do:*)",
-      "Bash(npx vite:*)"
+      "Bash(npx vite:*)",
+      "WebFetch(domain:fantasy-racing.vheissulabs.com)",
+      "Bash(vendor/bin/duster lint:*)",
+      "Bash(vendor/bin/duster fix:*)",
+      "Bash(grep:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

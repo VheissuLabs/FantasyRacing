@@ -14,7 +14,7 @@ test('fantasy team is auto-created when a user joins a league', function () {
     $this->assertDatabaseHas('fantasy_teams', [
         'league_id' => $league->id,
         'user_id' => $user->id,
-        'name' => $user->name.'\'s Team',
+        'name' => $user->name . '\'s Team',
     ]);
 });
 
@@ -45,6 +45,6 @@ test('league show page includes auto-created fantasy team for members', function
         ->assertInertia(fn ($page) => $page
             ->component('Leagues/Show')
             ->where('fantasyTeam.id', $team->id)
-            ->where('fantasyTeam.name', $user->name.'\'s Team')
+            ->where('fantasyTeam.name', $user->name . '\'s Team')
         );
 });

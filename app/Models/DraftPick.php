@@ -19,14 +19,6 @@ class DraftPick extends Model
         'picked_at',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'is_auto_pick' => 'boolean',
-            'picked_at' => 'datetime',
-        ];
-    }
-
     public function draftSession(): BelongsTo
     {
         return $this->belongsTo(DraftSession::class);
@@ -45,5 +37,13 @@ class DraftPick extends Model
     public function entity(): MorphTo
     {
         return $this->morphTo(__FUNCTION__, 'entity_type', 'entity_id');
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'is_auto_pick' => 'boolean',
+            'picked_at' => 'datetime',
+        ];
     }
 }

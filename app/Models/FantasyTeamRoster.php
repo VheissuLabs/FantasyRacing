@@ -18,14 +18,6 @@ class FantasyTeamRoster extends Model
         'acquired_at',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'in_seat' => 'boolean',
-            'acquired_at' => 'datetime',
-        ];
-    }
-
     public function fantasyTeam(): BelongsTo
     {
         return $this->belongsTo(FantasyTeam::class);
@@ -44,5 +36,13 @@ class FantasyTeamRoster extends Model
     public function isConstructor(): bool
     {
         return $this->entity_type === 'constructor';
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'in_seat' => 'boolean',
+            'acquired_at' => 'datetime',
+        ];
     }
 }

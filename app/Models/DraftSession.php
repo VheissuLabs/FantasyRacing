@@ -22,16 +22,6 @@ class DraftSession extends Model
         'paused_by',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'scheduled_at' => 'datetime',
-            'started_at' => 'datetime',
-            'completed_at' => 'datetime',
-            'notified_at' => 'datetime',
-        ];
-    }
-
     public function league(): BelongsTo
     {
         return $this->belongsTo(League::class);
@@ -70,5 +60,15 @@ class DraftSession extends Model
     public function currentOrder(): ?DraftOrder
     {
         return $this->orders()->where('pick_number', $this->current_pick_number)->first();
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'scheduled_at' => 'datetime',
+            'started_at' => 'datetime',
+            'completed_at' => 'datetime',
+            'notified_at' => 'datetime',
+        ];
     }
 }

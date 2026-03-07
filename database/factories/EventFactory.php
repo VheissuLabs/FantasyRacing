@@ -16,7 +16,7 @@ class EventFactory extends Factory
         return [
             'season_id' => Season::factory(),
             'track_id' => Track::factory(),
-            'name' => fake()->city().' Grand Prix',
+            'name' => fake()->city() . ' Grand Prix',
             'type' => 'race',
             'scheduled_at' => fake()->dateTimeBetween('now', '+6 months'),
             'status' => 'scheduled',

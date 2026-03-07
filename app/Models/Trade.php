@@ -21,14 +21,6 @@ class Trade extends Model
         'notes',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'initiated_at' => 'datetime',
-            'resolved_at' => 'datetime',
-        ];
-    }
-
     public function league(): BelongsTo
     {
         return $this->belongsTo(League::class);
@@ -57,5 +49,13 @@ class Trade extends Model
     public function isCompleted(): bool
     {
         return $this->status === 'completed';
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'initiated_at' => 'datetime',
+            'resolved_at' => 'datetime',
+        ];
     }
 }

@@ -21,13 +21,6 @@ class Constructor extends Model
         'jolpica_constructor_id',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'is_active' => 'boolean',
-        ];
-    }
-
     public function franchise(): BelongsTo
     {
         return $this->belongsTo(Franchise::class);
@@ -61,5 +54,12 @@ class Constructor extends Model
     public function eventPitstops(): HasMany
     {
         return $this->hasMany(EventPitstop::class);
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
     }
 }

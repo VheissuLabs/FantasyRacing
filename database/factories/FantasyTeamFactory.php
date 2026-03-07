@@ -16,7 +16,7 @@ class FantasyTeamFactory extends Factory
         return [
             'league_id' => League::factory(),
             'user_id' => User::factory(),
-            'name' => fake()->words(2, true).' Racing',
+            'name' => fake()->words(2, true) . ' Racing',
         ];
     }
 }

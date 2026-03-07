@@ -12,14 +12,6 @@ class DraftScheduleRequest extends FormRequest
         return true;
     }
 
-    protected function prepareForValidation(): void
-    {
-        $timezone = $this->user()->timezone ?? 'UTC';
-        $this->merge([
-            'scheduled_at' => Carbon::parse($this->input('scheduled_at'), $timezone)->utc()->toDateTimeString(),
-        ]);
-    }
-
     /** @return array<string, mixed> */
     public function rules(): array
     {
@@ -28,5 +20,13 @@ class DraftScheduleRequest extends FormRequest
             'present_user_ids' => ['nullable', 'array'],
             'present_user_ids.*' => ['integer'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $timezone = $this->user()->timezone ?? 'UTC';
+        $this->merge([
+            'scheduled_at' => Carbon::parse($this->input('scheduled_at'), $timezone)->utc()->toDateTimeString(),
+        ]);
     }
 }

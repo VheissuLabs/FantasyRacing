@@ -21,14 +21,6 @@ class LeagueInvite extends Model
         'accepted_by',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'expires_at' => 'datetime',
-            'accepted_at' => 'datetime',
-        ];
-    }
-
     public function league(): BelongsTo
     {
         return $this->belongsTo(League::class);
@@ -52,5 +44,13 @@ class LeagueInvite extends Model
     public function isPending(): bool
     {
         return $this->status === 'pending' && ! $this->isExpired();
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'expires_at' => 'datetime',
+            'accepted_at' => 'datetime',
+        ];
     }
 }

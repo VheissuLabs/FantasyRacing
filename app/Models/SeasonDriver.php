@@ -16,14 +16,6 @@ class SeasonDriver extends Model
         'effective_to',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'effective_from' => 'date',
-            'effective_to' => 'date',
-        ];
-    }
-
     public function season(): BelongsTo
     {
         return $this->belongsTo(Season::class);
@@ -42,5 +34,13 @@ class SeasonDriver extends Model
     public function isCurrent(): bool
     {
         return $this->effective_to === null;
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'effective_from' => 'date',
+            'effective_to' => 'date',
+        ];
     }
 }

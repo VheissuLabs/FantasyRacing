@@ -20,13 +20,6 @@ class Driver extends Model
         'is_active',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'is_active' => 'boolean',
-        ];
-    }
-
     public function franchise(): BelongsTo
     {
         return $this->belongsTo(Franchise::class);
@@ -63,5 +56,12 @@ class Driver extends Model
             ->where('season_id', $seasonId)
             ->whereNull('effective_to')
             ->first()?->constructor;
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
     }
 }

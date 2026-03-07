@@ -20,13 +20,6 @@ class LeagueMember extends Model
         'joined_at',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'joined_at' => 'datetime',
-        ];
-    }
-
     public function league(): BelongsTo
     {
         return $this->belongsTo(League::class);
@@ -40,5 +33,12 @@ class LeagueMember extends Model
     public function isCommissioner(): bool
     {
         return $this->role === 'commissioner';
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'joined_at' => 'datetime',
+        ];
     }
 }
