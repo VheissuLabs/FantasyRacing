@@ -1,12 +1,6 @@
 <script setup lang="ts">
     import { Head, Link, Form } from '@inertiajs/vue3'
     import { computed } from 'vue'
-    import { show as leagueShow } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
-    import {
-        create as tradeCreate,
-        accept as tradeAccept,
-        reject as tradeReject,
-    } from '@/actions/App/Http/Controllers/Leagues/TradeController'
     import { Badge } from '@/components/ui/badge'
     import { Button } from '@/components/ui/button'
     import {
@@ -17,6 +11,12 @@
     } from '@/components/ui/card'
     import AppLayout from '@/layouts/AppLayout.vue'
     import { type BreadcrumbItem } from '@/types'
+    import { show as leagueShow } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
+    import {
+        create as tradeCreate,
+        accept as tradeAccept,
+        reject as tradeReject,
+    } from '@/actions/App/Http/Controllers/Leagues/TradeController'
 
     interface TradeItem {
         id: number

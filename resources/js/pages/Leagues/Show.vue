@@ -2,6 +2,19 @@
     import { Head, Form, useForm } from '@inertiajs/vue3'
     import { Link, usePage } from '@inertiajs/vue3'
     import { ref } from 'vue'
+    import InputError from '@/components/InputError.vue'
+    import { Alert, AlertDescription } from '@/components/ui/alert'
+    import { Badge } from '@/components/ui/badge'
+    import { Button } from '@/components/ui/button'
+    import {
+        Card,
+        CardContent,
+        CardHeader,
+        CardTitle,
+    } from '@/components/ui/card'
+    import { Input } from '@/components/ui/input'
+    import AppLayout from '@/layouts/AppLayout.vue'
+    import { type BreadcrumbItem } from '@/types'
     import { show as draftShow } from '@/actions/App/Http/Controllers/Leagues/DraftController'
     import {
         create as teamCreate,
@@ -21,19 +34,6 @@
         reject as joinRequestReject,
     } from '@/actions/App/Http/Controllers/Leagues/LeagueJoinController'
     import { edit as settingsEdit } from '@/actions/App/Http/Controllers/Leagues/LeagueSettingsController'
-    import InputError from '@/components/InputError.vue'
-    import { Alert, AlertDescription } from '@/components/ui/alert'
-    import { Badge } from '@/components/ui/badge'
-    import { Button } from '@/components/ui/button'
-    import {
-        Card,
-        CardContent,
-        CardHeader,
-        CardTitle,
-    } from '@/components/ui/card'
-    import { Input } from '@/components/ui/input'
-    import AppLayout from '@/layouts/AppLayout.vue'
-    import { type BreadcrumbItem } from '@/types'
 
     interface League {
         id: number

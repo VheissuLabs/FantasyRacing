@@ -1,13 +1,6 @@
 <script setup lang="ts">
     import { Head, router, useForm } from '@inertiajs/vue3'
-    import {
-        index as leaguesIndex,
-        show as leagueShow,
-    } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
-    import {
-        destroy as settingsDestroy,
-        update as settingsUpdate,
-    } from '@/actions/App/Http/Controllers/Leagues/LeagueSettingsController'
+    import { ref } from 'vue'
     import Heading from '@/components/Heading.vue'
     import { Button } from '@/components/ui/button'
     import {
@@ -23,7 +16,14 @@
     import AppLayout from '@/layouts/AppLayout.vue'
     import SettingsForm from '@/pages/Leagues/Settings/Forms/SettingsForm.vue'
     import { type BreadcrumbItem } from '@/types'
-    import { ref } from 'vue'
+    import {
+        index as leaguesIndex,
+        show as leagueShow,
+    } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
+    import {
+        destroy as settingsDestroy,
+        update as settingsUpdate,
+    } from '@/actions/App/Http/Controllers/Leagues/LeagueSettingsController'
 
     interface Franchise {
         id: number
@@ -126,14 +126,13 @@
                         <p class="font-medium">Warning</p>
                         <p class="text-sm">
                             This will permanently delete the league, all teams,
-                            draft data, and trade history. This cannot be undone.
+                            draft data, and trade history. This cannot be
+                            undone.
                         </p>
                     </div>
                     <Dialog>
                         <DialogTrigger as-child>
-                            <Button variant="destructive"
-                                >Delete league</Button
-                            >
+                            <Button variant="destructive">Delete league</Button>
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader class="space-y-3">
@@ -156,7 +155,11 @@
                                     :disabled="deleting"
                                     @click="deleteLeague"
                                 >
-                                    {{ deleting ? 'Deleting...' : 'Delete league' }}
+                                    {{
+                                        deleting
+                                            ? 'Deleting...'
+                                            : 'Delete league'
+                                    }}
                                 </Button>
                             </DialogFooter>
                         </DialogContent>

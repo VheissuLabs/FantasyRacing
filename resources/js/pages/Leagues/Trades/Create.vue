@@ -1,11 +1,6 @@
 <script setup lang="ts">
     import { Head, useForm } from '@inertiajs/vue3'
     import { ref, computed } from 'vue'
-    import { show as leagueShow } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
-    import {
-        index as tradesIndex,
-        store as tradesStore,
-    } from '@/actions/App/Http/Controllers/Leagues/TradeController'
     import { Button } from '@/components/ui/button'
     import {
         Card,
@@ -17,6 +12,11 @@
     import { Label } from '@/components/ui/label'
     import AppLayout from '@/layouts/AppLayout.vue'
     import { type BreadcrumbItem } from '@/types'
+    import { show as leagueShow } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
+    import {
+        index as tradesIndex,
+        store as tradesStore,
+    } from '@/actions/App/Http/Controllers/Leagues/TradeController'
 
     interface Entity {
         id: number
