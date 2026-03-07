@@ -1,10 +1,10 @@
 <script setup lang="ts">
     import { Head, Form } from '@inertiajs/vue3'
     import { usePage } from '@inertiajs/vue3'
-    import { accept as inviteAccept } from '@/actions/App/Http/Controllers/Leagues/InviteController'
     import { Button } from '@/components/ui/button'
     import { Card, CardContent } from '@/components/ui/card'
     import AppLayout from '@/layouts/AppLayout.vue'
+    import { accept as inviteAccept } from '@/actions/App/Http/Controllers/Leagues/InviteController'
 
     interface Invite {
         token: string

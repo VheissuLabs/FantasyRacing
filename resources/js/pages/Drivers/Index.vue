@@ -1,13 +1,13 @@
 <script setup lang="ts">
     import { Head, Link, router } from '@inertiajs/vue3'
     import { ref } from 'vue'
+    import { Card, CardContent } from '@/components/ui/card'
+    import AppLayout from '@/layouts/AppLayout.vue'
+    import { type BreadcrumbItem } from '@/types'
     import {
         index as driversIndex,
         show as driverShow,
     } from '@/actions/App/Http/Controllers/DriverProfileController'
-    import { Card, CardContent } from '@/components/ui/card'
-    import AppLayout from '@/layouts/AppLayout.vue'
-    import { type BreadcrumbItem } from '@/types'
 
     interface Franchise {
         id: number
@@ -134,7 +134,10 @@
                                     v-if="driver.season_drivers.length > 0"
                                     class="text-xs text-muted-foreground"
                                 >
-                                    {{ driver.season_drivers[0].constructor.name }}
+                                    {{
+                                        driver.season_drivers[0].constructor
+                                            .name
+                                    }}
                                 </p>
                                 <p class="text-xs text-muted-foreground">
                                     {{ driver.franchise.name }}
