@@ -5,8 +5,8 @@ namespace App\Jobs;
 use App\Models\ConstructorSeasonStat;
 use App\Models\DriverSeasonStat;
 use App\Models\Event;
+use App\Models\EventConstructorResult;
 use App\Models\EventResult;
-use App\Models\FantasyEventPoint;
 use App\Models\FantasyTeamRoster;
 use App\Models\PointsScheme;
 use App\Models\Season;
@@ -52,13 +52,11 @@ class RefreshSeasonStats implements ShouldQueue
             ->get()
             ->groupBy('driver_id');
 
-        $fantasyTotals = FantasyEventPoint::whereIn('event_id', $eventIds)
-            ->where('entity_type', 'driver')
-            ->selectRaw('entity_id, event_id, MAX(points) as points')
-            ->groupBy('entity_id', 'event_id')
-            ->get()
-            ->groupBy('entity_id')
-            ->map(fn ($rows) => $rows->sum('points'));
+        $fantasyTotals = EventResult::whereIn('event_id', $eventIds)
+            ->whereNotNull('fantasy_points')
+            ->selectRaw('driver_id, SUM(fantasy_points) as total')
+            ->groupBy('driver_id')
+            ->pluck('total', 'driver_id');
 
         $ownershipCounts = FantasyTeamRoster::where('entity_type', 'driver')
             ->whereHas('fantasyTeam.league', fn ($query) => $query->where('season_id', $season->id))
@@ -137,13 +135,11 @@ class RefreshSeasonStats implements ShouldQueue
             ->get()
             ->groupBy('constructor_id');
 
-        $fantasyTotals = FantasyEventPoint::whereIn('event_id', $eventIds)
-            ->where('entity_type', 'constructor')
-            ->selectRaw('entity_id, event_id, MAX(points) as points')
-            ->groupBy('entity_id', 'event_id')
-            ->get()
-            ->groupBy('entity_id')
-            ->map(fn ($rows) => $rows->sum('points'));
+        $fantasyTotals = EventConstructorResult::whereIn('event_id', $eventIds)
+            ->whereNotNull('fantasy_points')
+            ->selectRaw('constructor_id as entity_id, SUM(fantasy_points) as total')
+            ->groupBy('constructor_id')
+            ->pluck('total', 'entity_id');
 
         $ownershipCounts = FantasyTeamRoster::where('entity_type', 'constructor')
             ->whereHas('fantasyTeam.league', fn ($query) => $query->where('season_id', $season->id))

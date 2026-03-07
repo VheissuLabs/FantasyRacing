@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Driver;
+use App\Models\EventResult;
 use App\Models\Franchise;
 use App\Models\Season;
 use Illuminate\Http\Request;
@@ -64,7 +65,7 @@ class DriverProfileController extends Controller
             'fastest_laps' => $stats->sum('fastest_laps'),
             'points_total' => $stats->sum('points_total'),
             'best_championship' => $stats->min('championship_position'),
-            'fantasy_points_total' => $stats->sum('fantasy_points_total'),
+            'fantasy_points_total' => EventResult::where('driver_id', $driver->id)->sum('fantasy_points'),
         ];
 
         $seasonStats = $driver->driverSeasonStats()

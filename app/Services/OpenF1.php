@@ -90,6 +90,10 @@ class OpenF1
 
         $data = $response->json();
 
-        return is_array($data) ? collect($data) : collect();
+        if (! is_array($data)) {
+            return collect();
+        }
+
+        return collect($data)->filter(fn ($item) => is_array($item));
     }
 }

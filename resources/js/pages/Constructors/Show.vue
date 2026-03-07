@@ -143,13 +143,6 @@
                   { label: 'Races', value: props.seasonStat.races_entered },
                   { label: 'Wins', value: props.seasonStat.wins },
                   { label: 'Podiums', value: props.seasonStat.podiums },
-                  { label: '1-2 Finishes', value: props.seasonStat.one_twos },
-                  { label: 'Poles', value: props.seasonStat.poles },
-                  {
-                      label: 'Fastest Laps',
-                      value: props.seasonStat.fastest_laps,
-                  },
-                  { label: 'FIA Points', value: props.seasonStat.points_total },
                   {
                       label: 'Fantasy Points',
                       value: props.seasonStat.fantasy_points_total,
@@ -170,19 +163,6 @@
                     },
                     { label: 'Wins', value: props.careerSummary.wins },
                     { label: 'Podiums', value: props.careerSummary.podiums },
-                    {
-                        label: '1-2 Finishes',
-                        value: props.careerSummary.one_twos,
-                    },
-                    { label: 'Poles', value: props.careerSummary.poles },
-                    {
-                        label: 'Fastest Laps',
-                        value: props.careerSummary.fastest_laps,
-                    },
-                    {
-                        label: 'FIA Points',
-                        value: props.careerSummary.points_total,
-                    },
                     {
                         label: 'Fantasy Points',
                         value: props.careerSummary.fantasy_points_total,
