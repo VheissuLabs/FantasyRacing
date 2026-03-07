@@ -1,6 +1,13 @@
 <script setup lang="ts">
     import { Head, Form, router, useForm } from '@inertiajs/vue3'
     import { computed, ref } from 'vue'
+    import {
+        update as updateTeam,
+        swapRoster,
+        pickupFreeAgent,
+    } from '@/actions/App/Http/Controllers/Leagues/FantasyTeamController'
+    import { show as leagueShow } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
+    import InputError from '@/components/InputError.vue'
     import { Button } from '@/components/ui/button'
     import {
         Card,
@@ -15,17 +22,10 @@
         DialogTitle,
     } from '@/components/ui/dialog'
     import { Input } from '@/components/ui/input'
-    import InputError from '@/components/InputError.vue'
     import { Label } from '@/components/ui/label'
     import { Switch } from '@/components/ui/switch'
     import AppLayout from '@/layouts/AppLayout.vue'
     import { type BreadcrumbItem } from '@/types'
-    import {
-        update as updateTeam,
-        swapRoster,
-        pickupFreeAgent,
-    } from '@/actions/App/Http/Controllers/Leagues/FantasyTeamController'
-    import { show as leagueShow } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
 
     interface Entity {
         id: number

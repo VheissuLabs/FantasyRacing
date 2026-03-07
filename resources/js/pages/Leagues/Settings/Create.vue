@@ -1,10 +1,10 @@
 <script setup lang="ts">
     import { Head, useForm } from '@inertiajs/vue3'
+    import { store as leaguesStore } from '@/actions/App/Http/Controllers/Leagues/LeagueController'
+    import { index as leaguesIndex } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
     import AppLayout from '@/layouts/AppLayout.vue'
     import SettingsForm from '@/pages/Leagues/Settings/Forms/SettingsForm.vue'
     import { type BreadcrumbItem } from '@/types'
-    import { store as leaguesStore } from '@/actions/App/Http/Controllers/Leagues/LeagueController'
-    import { index as leaguesIndex } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
 
     interface Franchise {
         id: number

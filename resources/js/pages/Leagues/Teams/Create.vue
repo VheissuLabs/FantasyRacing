@@ -1,5 +1,7 @@
 <script setup lang="ts">
     import { Head, useForm } from '@inertiajs/vue3'
+    import { store as teamStore } from '@/actions/App/Http/Controllers/Leagues/FantasyTeamController'
+    import { index as leaguesIndex } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
     import InputError from '@/components/InputError.vue'
     import { Button } from '@/components/ui/button'
     import {
@@ -13,8 +15,6 @@
     import { Label } from '@/components/ui/label'
     import AppLayout from '@/layouts/AppLayout.vue'
     import { type BreadcrumbItem } from '@/types'
-    import { store as teamStore } from '@/actions/App/Http/Controllers/Leagues/FantasyTeamController'
-    import { index as leaguesIndex } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
 
     interface League {
         id: number

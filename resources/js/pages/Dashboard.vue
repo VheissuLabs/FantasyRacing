@@ -1,10 +1,10 @@
 <script setup lang="ts">
     import { Head, Link } from '@inertiajs/vue3'
+    import { show as leagueShow } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
     import AppLayout from '@/layouts/AppLayout.vue'
+    import { dashboard } from '@/routes'
     import { type BreadcrumbItem } from '@/types'
     import PlaceholderPattern from '../components/PlaceholderPattern.vue'
-    import { show as leagueShow } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
-    import { dashboard } from '@/routes'
 
     interface NextEvent {
         id: number

@@ -1,5 +1,10 @@
 <script setup lang="ts">
     import { Head, Link, router } from '@inertiajs/vue3'
+    import {
+        index as constructorsIndex,
+        show as constructorShow,
+        season as constructorSeason,
+    } from '@/actions/App/Http/Controllers/ConstructorProfileController'
     import { Badge } from '@/components/ui/badge'
     import {
         Card,
@@ -9,11 +14,6 @@
     } from '@/components/ui/card'
     import AppLayout from '@/layouts/AppLayout.vue'
     import { type BreadcrumbItem } from '@/types'
-    import {
-        index as constructorsIndex,
-        show as constructorShow,
-        season as constructorSeason,
-    } from '@/actions/App/Http/Controllers/ConstructorProfileController'
 
     interface Country {
         id: number

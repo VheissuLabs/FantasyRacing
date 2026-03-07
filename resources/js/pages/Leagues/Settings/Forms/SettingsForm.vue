@@ -1,6 +1,7 @@
 <script setup lang="ts">
     import { Form } from '@inertiajs/vue3'
     import { ref, computed } from 'vue'
+    import { regenerateInviteCode } from '@/actions/App/Http/Controllers/Leagues/LeagueSettingsController'
     import InputError from '@/components/InputError.vue'
     import { Button } from '@/components/ui/button'
     import {
@@ -15,7 +16,6 @@
     import { Input } from '@/components/ui/input'
     import { Label } from '@/components/ui/label'
     import { Separator } from '@/components/ui/separator'
-    import { regenerateInviteCode } from '@/actions/App/Http/Controllers/Leagues/LeagueSettingsController'
 
     interface Franchise {
         id: number
