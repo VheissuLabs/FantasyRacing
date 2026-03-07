@@ -19,10 +19,12 @@
         <AppSidebar />
         <AppContent
             variant="sidebar"
-            class="overflow-x-hidden"
+            class="max-h-screen overflow-hidden"
         >
             <AppSidebarHeader :breadcrumbs="breadcrumbs" />
-            <slot />
+            <div class="flex-1 overflow-y-auto overflow-x-hidden">
+                <slot />
+            </div>
         </AppContent>
     </AppShell>
 </template>
