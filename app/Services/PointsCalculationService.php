@@ -31,6 +31,7 @@ class PointsCalculationService
             $result->update([
                 'fantasy_points' => $points,
                 'fantasy_breakdown' => $breakdown,
+                'fia_points' => $this->fiaPoints($result, $event),
             ]);
         }
 
@@ -395,8 +396,41 @@ class PointsCalculationService
         return ['key' => 'constructor_neither_reaches_q2', 'points' => $this->bonus('qualifying', 'constructor_neither_reaches_q2', 'constructor', $franchiseId)];
     }
 
+    protected function fiaPoints(EventResult $result, Event $event): float
+    {
+        if (! $result->isClassified() || ! $result->finish_position) {
+            return 0.0;
+        }
+
+        $position = $result->finish_position;
+
+        $points = match ($event->type) {
+            'race' => self::FIA_RACE_POINTS[$position] ?? 0.0,
+            'sprint' => self::FIA_SPRINT_POINTS[$position] ?? 0.0,
+            default => 0.0,
+        };
+
+        if ($event->type === 'race' && $result->fastest_lap && $position <= 10) {
+            $points += 1.0;
+        }
+
+        return $points;
+    }
+
     protected function bonus(string $eventType, string $bonusKey, string $appliesTo, int $franchiseId): float
     {
         return (float) BonusPointsScheme::getBonusPoints($eventType, $bonusKey, $appliesTo, $franchiseId);
     }
+
+    /** @var array<int, float> */
+    private const FIA_RACE_POINTS = [
+        1 => 25.0, 2 => 18.0, 3 => 15.0, 4 => 12.0, 5 => 10.0,
+        6 => 8.0, 7 => 6.0, 8 => 4.0, 9 => 2.0, 10 => 1.0,
+    ];
+
+    /** @var array<int, float> */
+    private const FIA_SPRINT_POINTS = [
+        1 => 8.0, 2 => 7.0, 3 => 6.0, 4 => 5.0,
+        5 => 4.0, 6 => 3.0, 7 => 2.0, 8 => 1.0,
+    ];
 }

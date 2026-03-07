@@ -27,6 +27,7 @@ class EventResult extends Model
         'points_eligible',
         'fantasy_points',
         'fantasy_breakdown',
+        'fia_points',
         'data_source',
         'notes',
     ];
@@ -64,6 +65,7 @@ class EventResult extends Model
             'points_eligible' => 'boolean',
             'fantasy_points' => 'decimal:2',
             'fantasy_breakdown' => 'array',
+            'fia_points' => 'decimal:2',
             'q1_time' => 'datetime:H:i:s',
             'q2_time' => 'datetime:H:i:s',
             'q3_time' => 'datetime:H:i:s',
