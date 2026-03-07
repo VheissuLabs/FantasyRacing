@@ -66,8 +66,9 @@
     }
 
     interface GroupedEventResult {
-        event: { id: number; name: string }
+        event: { id: number; name: string; type: string }
         track: { id: number; name: string }
+        fantasy_points: string | null
         results: {
             driver: { id: number; name: string; slug: string }
             grid_position: number | null
@@ -75,6 +76,8 @@
             status: string
             fastest_lap: boolean
             driver_of_the_day: boolean
+            fia_points: string | null
+            fantasy_points: string | null
         }[]
     }
 
@@ -425,6 +428,16 @@
                                         Status
                                     </th>
                                     <th class="px-4 py-2 font-medium"></th>
+                                    <th
+                                        class="px-4 py-2 text-right font-medium"
+                                    >
+                                        FIA Pts
+                                    </th>
+                                    <th
+                                        class="px-4 py-2 text-right font-medium"
+                                    >
+                                        Fantasy Pts
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -443,7 +456,7 @@
                                                 <span
                                                     class="text-xs text-muted-foreground"
                                                     >{{
-                                                        group.track.name
+                                                        group.track?.name ?? '-'
                                                     }}</span
                                                 >
                                             </template>
@@ -486,6 +499,30 @@
                                                     DOTD
                                                 </Badge>
                                             </div>
+                                        </td>
+                                        <td class="px-4 py-2 text-right">
+                                            {{ result.fia_points ?? '-' }}
+                                        </td>
+                                        <td class="px-4 py-2 text-right">
+                                            <template v-if="index === 0">
+                                                <span
+                                                    :class="{
+                                                        'text-red-500':
+                                                            Number(
+                                                                group.fantasy_points,
+                                                            ) < 0,
+                                                        'text-green-500':
+                                                            Number(
+                                                                group.fantasy_points,
+                                                            ) > 0,
+                                                    }"
+                                                >
+                                                    {{
+                                                        group.fantasy_points ??
+                                                        '-'
+                                                    }}
+                                                </span>
+                                            </template>
                                         </td>
                                     </tr>
                                 </template>

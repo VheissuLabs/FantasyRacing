@@ -80,7 +80,7 @@ class DriverProfileController extends Controller
 
         $recentResults = $driver->eventResults()
             ->whereHas('event', fn ($query) => $query->where('status', 'completed'))
-            ->with(['event.track:id,name', 'constructor:id,name,slug'])
+            ->with(['event.track:id,name', 'event:id,name,type,season_id', 'constructor:id,name,slug'])
             ->latest('id')
             ->limit(10)
             ->get();

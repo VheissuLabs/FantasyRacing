@@ -78,7 +78,14 @@
         status: string
         fastest_lap: boolean
         driver_of_the_day: boolean
-        event: { id: number; name: string; track: { id: number; name: string } }
+        fia_points: string | null
+        fantasy_points: string | null
+        event: {
+            id: number
+            name: string
+            type: string
+            track: { id: number; name: string }
+        }
         constructor: ConstructorRef
     }
 
@@ -421,6 +428,16 @@
                                         Status
                                     </th>
                                     <th class="px-4 py-2 font-medium"></th>
+                                    <th
+                                        class="px-4 py-2 text-right font-medium"
+                                    >
+                                        FIA Pts
+                                    </th>
+                                    <th
+                                        class="px-4 py-2 text-right font-medium"
+                                    >
+                                        Fantasy Pts
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -433,7 +450,7 @@
                                         {{ result.event.name }}
                                     </td>
                                     <td class="px-4 py-2">
-                                        {{ result.event.track.name }}
+                                        {{ result.event.track?.name ?? '-' }}
                                     </td>
                                     <td class="px-4 py-2 text-right">
                                         {{ result.grid_position ?? '-' }}
@@ -463,6 +480,25 @@
                                                 DOTD
                                             </Badge>
                                         </div>
+                                    </td>
+                                    <td class="px-4 py-2 text-right">
+                                        {{ result.fia_points ?? '-' }}
+                                    </td>
+                                    <td class="px-4 py-2 text-right">
+                                        <span
+                                            :class="{
+                                                'text-red-500':
+                                                    Number(
+                                                        result.fantasy_points,
+                                                    ) < 0,
+                                                'text-green-500':
+                                                    Number(
+                                                        result.fantasy_points,
+                                                    ) > 0,
+                                            }"
+                                        >
+                                            {{ result.fantasy_points ?? '-' }}
+                                        </span>
                                     </td>
                                 </tr>
                             </tbody>

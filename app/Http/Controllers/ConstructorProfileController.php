@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Constructor;
+use App\Models\EventConstructorResult;
 use App\Models\Franchise;
 use App\Models\Season;
 use Illuminate\Http\Request;
@@ -114,24 +115,38 @@ class ConstructorProfileController extends Controller
                 'country' => $sd->driver->country,
             ]);
 
+        $constructorResults = EventConstructorResult::where('constructor_id', $constructor->id)
+            ->whereHas('event', fn ($query) => $query->where('season_id', $season->id))
+            ->with('event:id,name,type')
+            ->get()
+            ->keyBy('event_id');
+
         $eventResults = $constructor->eventResults()
             ->whereHas('event', fn ($query) => $query->where('season_id', $season->id)->where('status', 'completed'))
-            ->with(['event.track:id,name', 'driver:id,name,slug'])
+            ->with(['event.track:id,name', 'event:id,name,type', 'driver:id,name,slug'])
             ->orderBy('event_id')
             ->get()
             ->groupBy('event_id')
-            ->map(fn ($results) => [
-                'event' => $results->first()->event->only('id', 'name'),
-                'track' => $results->first()->event->track->only('id', 'name'),
-                'results' => $results->map(fn ($r) => [
-                    'driver' => $r->driver->only('id', 'name', 'slug'),
-                    'grid_position' => $r->grid_position,
-                    'finish_position' => $r->finish_position,
-                    'status' => $r->status,
-                    'fastest_lap' => $r->fastest_lap,
-                    'driver_of_the_day' => $r->driver_of_the_day,
-                ]),
-            ])
+            ->map(function ($results) use ($constructorResults) {
+                $eventId = $results->first()->event_id;
+                $constructorResult = $constructorResults[$eventId] ?? null;
+
+                return [
+                    'event' => $results->first()->event->only('id', 'name', 'type'),
+                    'track' => $results->first()->event->track->only('id', 'name'),
+                    'fantasy_points' => $constructorResult?->fantasy_points,
+                    'results' => $results->map(fn ($r) => [
+                        'driver' => $r->driver->only('id', 'name', 'slug'),
+                        'grid_position' => $r->grid_position,
+                        'finish_position' => $r->finish_position,
+                        'status' => $r->status,
+                        'fastest_lap' => $r->fastest_lap,
+                        'driver_of_the_day' => $r->driver_of_the_day,
+                        'fia_points' => $r->fia_points,
+                        'fantasy_points' => $r->fantasy_points,
+                    ]),
+                ];
+            })
             ->values();
 
         $availableSeasons = $constructor->constructorSeasonStats()
