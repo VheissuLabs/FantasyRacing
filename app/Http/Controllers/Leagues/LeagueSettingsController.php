@@ -49,6 +49,15 @@ class LeagueSettingsController extends Controller
         return back()->with('success', 'League settings updated.');
     }
 
+    public function destroy(League $league): RedirectResponse
+    {
+        Gate::authorize('delete', $league);
+
+        $league->delete();
+
+        return to_route('leagues.index')->with('success', 'League deleted.');
+    }
+
     public function regenerateInviteCode(Request $request, League $league): RedirectResponse
     {
         Gate::authorize('update', $league);

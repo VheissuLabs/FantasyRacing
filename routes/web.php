@@ -85,6 +85,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/leagues/{league:slug}/settings', [LeagueSettingsController::class, 'edit'])->name('leagues.settings');
     Route::put('/leagues/{league:slug}/settings', [LeagueSettingsController::class, 'update'])->name('leagues.settings.update');
     Route::post('/leagues/{league:slug}/settings/regenerate-invite-code', [LeagueSettingsController::class, 'regenerateInviteCode'])->name('leagues.settings.regenerate-invite-code');
+    Route::delete('/leagues/{league:slug}', [LeagueSettingsController::class, 'destroy'])->name('leagues.destroy');
 
     // Standings
     Route::get('/leagues/{league:slug}/standings', [StandingsController::class, 'show'])->name('leagues.standings');
