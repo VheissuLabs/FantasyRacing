@@ -22,7 +22,7 @@
             class="max-h-screen overflow-hidden"
         >
             <AppSidebarHeader :breadcrumbs="breadcrumbs" />
-            <div class="flex-1 overflow-y-auto overflow-x-hidden">
+            <div class="flex-1 overflow-x-hidden overflow-y-auto">
                 <slot />
             </div>
         </AppContent>
