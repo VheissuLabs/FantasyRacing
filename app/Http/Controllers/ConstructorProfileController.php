@@ -124,7 +124,7 @@ class ConstructorProfileController extends Controller
 
         $eventResults = $constructor->eventResults()
             ->whereHas('event', fn ($query) => $query->where('season_id', $season->id)->where('status', 'completed'))
-            ->with(['event.track:id,name', 'event:id,name,type', 'driver:id,name,slug'])
+            ->with(['event.track:id,name', 'event:id,name,type,track_id', 'driver:id,name,slug'])
             ->orderBy('event_id')
             ->get()
             ->groupBy('event_id')
