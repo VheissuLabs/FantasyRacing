@@ -179,6 +179,7 @@ test('end-to-end: create league, join, draft, lock event, calculate points, view
 
     $calculator = app(PointsCalculationService::class);
     $calculator->calculateForEvent($event);
+    $calculator->aggregateForFantasyTeams($event);
 
     // Both teams should have fantasy event points
     $team1PointCount = FantasyEventPoint::where('fantasy_team_id', $team1->id)->where('event_id', $event->id)->count();

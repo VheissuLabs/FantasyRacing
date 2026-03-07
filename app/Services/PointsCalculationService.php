@@ -47,11 +47,15 @@ class PointsCalculationService
             ]);
         }
 
-        $constructorIds = $results->pluck('constructor_id')->unique();
+        $pitstopConstructorIds = EventPitstop::where('event_id', $event->id)
+            ->pluck('constructor_id')
+            ->unique();
+
+        $constructorIds = $results->pluck('constructor_id')->unique()->merge($pitstopConstructorIds)->unique();
 
         foreach ($constructorIds as $constructorId) {
             $constructorResults = $results->where('constructor_id', $constructorId);
-            [$points, $breakdown] = $this->constructorPoints($constructorResults, $event, $franchiseId);
+            [$points, $breakdown] = $this->constructorPoints($constructorResults, $event, $franchiseId, $constructorId);
 
             EventConstructorResult::updateOrCreate(
                 ['event_id' => $event->id, 'constructor_id' => $constructorId],
@@ -111,12 +115,23 @@ class PointsCalculationService
 
     protected function storeFantasyPoints(FantasyTeam $team, Event $event, string $entityType, int $entityId): void
     {
+        $franchiseId = $event->season->franchise_id;
+
         if ($entityType === 'driver') {
             $result = EventResult::where('event_id', $event->id)
                 ->where('driver_id', $entityId)
                 ->first();
-            $points = $result?->fantasy_points ?? 0;
-            $breakdown = $result?->fantasy_breakdown ?? [];
+
+            if ($result) {
+                $points = $result->fantasy_points ?? 0;
+                $breakdown = $result->fantasy_breakdown ?? [];
+            } else {
+                $dnfPenalty = $this->bonus($event->type, 'dnf_penalty', 'driver', $franchiseId);
+                $points = $dnfPenalty;
+                $breakdown = $dnfPenalty !== 0.0
+                    ? ['dnf_penalty' => $dnfPenalty, 'note' => 'no_result']
+                    : [];
+            }
         } else {
             $result = EventConstructorResult::where('event_id', $event->id)
                 ->where('constructor_id', $entityId)
@@ -217,7 +232,7 @@ class PointsCalculationService
      * @param  \Illuminate\Support\Collection<int, EventResult>  $results
      * @return array{0: float, 1: array<string, float>}
      */
-    protected function constructorPoints($results, Event $event, int $franchiseId): array
+    protected function constructorPoints($results, Event $event, int $franchiseId, int $constructorId): array
     {
         $breakdown = [];
         $points = 0.0;
@@ -247,7 +262,6 @@ class PointsCalculationService
                 }
             }
 
-            $constructorId = $results->first()->constructor_id;
             $pitstop = $this->pitstopPoints($constructorId, $event, $franchiseId);
             $points += $pitstop['total'];
             $breakdown = array_merge($breakdown, $pitstop['breakdown']);

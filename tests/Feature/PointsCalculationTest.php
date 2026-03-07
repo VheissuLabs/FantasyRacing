@@ -159,7 +159,8 @@ test('driver gets position points for classified race finish', function () {
     ]);
 
     $calculator = app(PointsCalculationService::class);
-    $calculator->calculateForTeam($scenario['team'], $event);
+    $calculator->calculateForEvent($event);
+    $calculator->aggregateForFantasyTeams($event);
 
     $point = FantasyEventPoint::where('fantasy_team_id', $scenario['team']->id)
         ->where('event_id', $event->id)
@@ -201,7 +202,8 @@ test('driver gets fastest lap bonus in race', function () {
     ]);
 
     $calculator = app(PointsCalculationService::class);
-    $calculator->calculateForTeam($scenario['team'], $event);
+    $calculator->calculateForEvent($event);
+    $calculator->aggregateForFantasyTeams($event);
 
     $point = FantasyEventPoint::where('fantasy_team_id', $scenario['team']->id)
         ->where('entity_type', 'driver')
@@ -241,7 +243,8 @@ test('driver gets driver of the day bonus in race', function () {
     ]);
 
     $calculator = app(PointsCalculationService::class);
-    $calculator->calculateForTeam($scenario['team'], $event);
+    $calculator->calculateForEvent($event);
+    $calculator->aggregateForFantasyTeams($event);
 
     $point = FantasyEventPoint::where('fantasy_team_id', $scenario['team']->id)
         ->where('entity_type', 'driver')
@@ -272,7 +275,8 @@ test('driver gets DNF penalty when no result exists', function () {
     // No EventResult for driver 0 — they didn't participate/DNF
 
     $calculator = app(PointsCalculationService::class);
-    $calculator->calculateForTeam($scenario['team'], $event);
+    $calculator->calculateForEvent($event);
+    $calculator->aggregateForFantasyTeams($event);
 
     $point = FantasyEventPoint::where('fantasy_team_id', $scenario['team']->id)
         ->where('entity_type', 'driver')
@@ -312,7 +316,8 @@ test('driver gets DNF penalty for DNF status', function () {
     ]);
 
     $calculator = app(PointsCalculationService::class);
-    $calculator->calculateForTeam($scenario['team'], $event);
+    $calculator->calculateForEvent($event);
+    $calculator->aggregateForFantasyTeams($event);
 
     $point = FantasyEventPoint::where('fantasy_team_id', $scenario['team']->id)
         ->where('entity_type', 'driver')
@@ -355,7 +360,8 @@ test('driver gets sprint positions gained and lost points', function () {
     ]);
 
     $calculator = app(PointsCalculationService::class);
-    $calculator->calculateForTeam($scenario['team'], $event);
+    $calculator->calculateForEvent($event);
+    $calculator->aggregateForFantasyTeams($event);
 
     $point = FantasyEventPoint::where('fantasy_team_id', $scenario['team']->id)
         ->where('entity_type', 'driver')
@@ -399,7 +405,8 @@ test('driver gets sprint positions lost penalty', function () {
     ]);
 
     $calculator = app(PointsCalculationService::class);
-    $calculator->calculateForTeam($scenario['team'], $event);
+    $calculator->calculateForEvent($event);
+    $calculator->aggregateForFantasyTeams($event);
 
     $point = FantasyEventPoint::where('fantasy_team_id', $scenario['team']->id)
         ->where('entity_type', 'driver')
@@ -440,7 +447,8 @@ test('driver gets sprint overtake points', function () {
     ]);
 
     $calculator = app(PointsCalculationService::class);
-    $calculator->calculateForTeam($scenario['team'], $event);
+    $calculator->calculateForEvent($event);
+    $calculator->aggregateForFantasyTeams($event);
 
     $point = FantasyEventPoint::where('fantasy_team_id', $scenario['team']->id)
         ->where('entity_type', 'driver')
@@ -479,7 +487,8 @@ test('driver gets NC/DSQ penalty in qualifying', function () {
     ]);
 
     $calculator = app(PointsCalculationService::class);
-    $calculator->calculateForTeam($scenario['team'], $event);
+    $calculator->calculateForEvent($event);
+    $calculator->aggregateForFantasyTeams($event);
 
     $point = FantasyEventPoint::where('fantasy_team_id', $scenario['team']->id)
         ->where('entity_type', 'driver')
@@ -529,7 +538,8 @@ test('constructor gets combined position points for both drivers in race', funct
     ]);
 
     $calculator = app(PointsCalculationService::class);
-    $calculator->calculateForTeam($scenario['team'], $event);
+    $calculator->calculateForEvent($event);
+    $calculator->aggregateForFantasyTeams($event);
 
     $point = FantasyEventPoint::where('fantasy_team_id', $scenario['team']->id)
         ->where('entity_type', 'constructor')
@@ -577,7 +587,8 @@ test('constructor gets pitstop bracket points', function () {
     ]);
 
     $calculator = app(PointsCalculationService::class);
-    $calculator->calculateForTeam($scenario['team'], $event);
+    $calculator->calculateForEvent($event);
+    $calculator->aggregateForFantasyTeams($event);
 
     $point = FantasyEventPoint::where('fantasy_team_id', $scenario['team']->id)
         ->where('entity_type', 'constructor')
@@ -618,7 +629,8 @@ test('constructor gets fastest pitstop bonus', function () {
     ]);
 
     $calculator = app(PointsCalculationService::class);
-    $calculator->calculateForTeam($scenario['team'], $event);
+    $calculator->calculateForEvent($event);
+    $calculator->aggregateForFantasyTeams($event);
 
     $point = FantasyEventPoint::where('fantasy_team_id', $scenario['team']->id)
         ->where('entity_type', 'constructor')
@@ -678,7 +690,8 @@ test('constructor gets qualifying Q-stage bonuses for both drivers reaching Q3',
     ]);
 
     $calculator = app(PointsCalculationService::class);
-    $calculator->calculateForTeam($scenario['team'], $event);
+    $calculator->calculateForEvent($event);
+    $calculator->aggregateForFantasyTeams($event);
 
     $point = FantasyEventPoint::where('fantasy_team_id', $scenario['team']->id)
         ->where('entity_type', 'constructor')
@@ -737,7 +750,8 @@ test('constructor gets qualifying bonus for one driver reaching Q3', function ()
     ]);
 
     $calculator = app(PointsCalculationService::class);
-    $calculator->calculateForTeam($scenario['team'], $event);
+    $calculator->calculateForEvent($event);
+    $calculator->aggregateForFantasyTeams($event);
 
     $point = FantasyEventPoint::where('fantasy_team_id', $scenario['team']->id)
         ->where('entity_type', 'constructor')
@@ -787,7 +801,8 @@ test('constructor gets neither reaches Q2 penalty', function () {
     ]);
 
     $calculator = app(PointsCalculationService::class);
-    $calculator->calculateForTeam($scenario['team'], $event);
+    $calculator->calculateForEvent($event);
+    $calculator->aggregateForFantasyTeams($event);
 
     $point = FantasyEventPoint::where('fantasy_team_id', $scenario['team']->id)
         ->where('entity_type', 'constructor')
@@ -827,7 +842,8 @@ test('constructor gets DSQ penalty in race', function () {
     ]);
 
     $calculator = app(PointsCalculationService::class);
-    $calculator->calculateForTeam($scenario['team'], $event);
+    $calculator->calculateForEvent($event);
+    $calculator->aggregateForFantasyTeams($event);
 
     $point = FantasyEventPoint::where('fantasy_team_id', $scenario['team']->id)
         ->where('entity_type', 'constructor')
@@ -891,7 +907,8 @@ test('uses roster snapshot when available instead of live roster', function () {
     ]);
 
     $calculator = app(PointsCalculationService::class);
-    $calculator->calculateForTeam($scenario['team'], $event);
+    $calculator->calculateForEvent($event);
+    $calculator->aggregateForFantasyTeams($event);
 
     // Driver 2 should have points (was in seat in snapshot)
     $driver2Points = FantasyEventPoint::where('fantasy_team_id', $scenario['team']->id)
@@ -957,7 +974,8 @@ test('falls back to live roster when no snapshot exists', function () {
     ]);
 
     $calculator = app(PointsCalculationService::class);
-    $calculator->calculateForTeam($scenario['team'], $event);
+    $calculator->calculateForEvent($event);
+    $calculator->aggregateForFantasyTeams($event);
 
     // In-seat drivers should have points
     $driver0Points = FantasyEventPoint::where('fantasy_team_id', $scenario['team']->id)
@@ -1017,6 +1035,7 @@ test('calculateForEvent processes all teams across all leagues for the season', 
 
     $calculator = app(PointsCalculationService::class);
     $calculator->calculateForEvent($event);
+    $calculator->aggregateForFantasyTeams($event);
 
     // Both teams should have fantasy event points
     $team1Points = FantasyEventPoint::where('fantasy_team_id', $scenario['team']->id)->count();
