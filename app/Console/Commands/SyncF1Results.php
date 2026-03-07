@@ -94,6 +94,8 @@ class SyncF1Results extends Command
             });
         }
 
+        $query->where('scheduled_at', '<=', now());
+
         return $query->orderBy('sort_order')->get();
     }
 

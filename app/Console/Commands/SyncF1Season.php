@@ -48,7 +48,6 @@ class SyncF1Season extends Command
 
         $this->call('f1:sync-results', [
             '--season' => $year,
-            '--force' => true,
         ]);
 
         $this->newLine();
@@ -70,27 +69,24 @@ class SyncF1Season extends Command
 
         $existingSeason = Season::where('franchise_id', $franchise->id)->where('year', $year)->first();
 
-        if ($existingSeason && ! $this->option('fresh')) {
-            $this->error("Season {$year} already exists. Use --fresh to re-seed.");
-
-            return false;
-        }
-
-        $wasActive = $existingSeason?->is_active ?? false;
-
         if ($existingSeason && $this->option('fresh')) {
             $this->warn("Deleting existing {$year} season data...");
             $existingSeason->delete();
+            $existingSeason = null;
         }
 
-        $season = Season::create([
-            'franchise_id' => $franchise->id,
-            'name' => (string) $year,
-            'year' => $year,
-            'is_active' => $wasActive,
-        ]);
-
-        $this->info("Created season: {$season->name}");
+        if ($existingSeason) {
+            $season = $existingSeason;
+            $this->info("Using existing season: {$season->name}");
+        } else {
+            $season = Season::create([
+                'franchise_id' => $franchise->id,
+                'name' => (string) $year,
+                'year' => $year,
+                'is_active' => false,
+            ]);
+            $this->info("Created season: {$season->name}");
+        }
 
         // --- Schedule & Tracks ---
         $this->info('Fetching schedule from Jolpica...');
@@ -123,68 +119,35 @@ class SyncF1Season extends Command
         }
 
         // --- Constructors & Drivers ---
-        $this->info('Fetching all race results for driver/constructor data...');
-
-        $nationalityMap = $jolpica->getDrivers($year)
-            ->filter(fn ($driverData) => isset($driverData['permanentNumber'], $driverData['nationality']))
-            ->keyBy(fn ($driverData) => (int) $driverData['permanentNumber'])
-            ->map(fn ($driverData) => $driverData['nationality']);
+        $this->info('Fetching constructors and drivers...');
 
         /** @var array<string, array{driverId: string, number: int, givenName: string, familyName: string, nationality: string|null, permanentNumber: int, constructorId: string, constructorName: string}> $allDriverData */
         $allDriverData = [];
 
-        $raceResults = $jolpica->getAllRaceResults($year);
+        $constructors = $jolpica->getConstructors($year);
 
-        foreach ($raceResults as $race) {
-            foreach ($race['Results'] ?? [] as $result) {
-                $driverId = $result['Driver']['driverId'];
+        foreach ($constructors as $constructorData) {
+            $constructorId = $constructorData['constructorId'];
+            $constructorName = $constructorData['name'];
 
-                if (! isset($allDriverData[$driverId])) {
-                    $allDriverData[$driverId] = [
-                        'driverId' => $driverId,
-                        'number' => (int) $result['number'],
-                        'givenName' => $result['Driver']['givenName'],
-                        'familyName' => $result['Driver']['familyName'],
-                        'nationality' => $result['Driver']['nationality'] ?? null,
-                        'permanentNumber' => isset($result['Driver']['permanentNumber'])
-                            ? (int) $result['Driver']['permanentNumber']
-                            : (int) $result['number'],
-                        'constructorId' => $result['Constructor']['constructorId'],
-                        'constructorName' => $result['Constructor']['name'],
-                    ];
-                }
-            }
-        }
+            $drivers = $jolpica->getConstructorDrivers($year, $constructorId);
 
-        // If no race results yet (pre-season), build driver data from constructors/drivers endpoints
-        if (empty($allDriverData)) {
-            $this->warn('No race results found — pulling from constructors/drivers endpoints instead.');
+            foreach ($drivers as $driverData) {
+                $driverId = $driverData['driverId'];
+                $permanentNumber = isset($driverData['permanentNumber'])
+                    ? (int) $driverData['permanentNumber']
+                    : 0;
 
-            $constructors = $jolpica->getConstructors($year);
-
-            foreach ($constructors as $constructorData) {
-                $constructorId = $constructorData['constructorId'];
-                $constructorName = $constructorData['name'];
-
-                $drivers = $jolpica->getConstructorDrivers($year, $constructorId);
-
-                foreach ($drivers as $driverData) {
-                    $driverId = $driverData['driverId'];
-                    $permanentNumber = isset($driverData['permanentNumber'])
-                        ? (int) $driverData['permanentNumber']
-                        : 0;
-
-                    $allDriverData[$driverId] = [
-                        'driverId' => $driverId,
-                        'number' => $permanentNumber,
-                        'givenName' => $driverData['givenName'],
-                        'familyName' => $driverData['familyName'],
-                        'nationality' => $driverData['nationality'] ?? $nationalityMap[$permanentNumber] ?? null,
-                        'permanentNumber' => $permanentNumber,
-                        'constructorId' => $constructorId,
-                        'constructorName' => $constructorName,
-                    ];
-                }
+                $allDriverData[$driverId] = [
+                    'driverId' => $driverId,
+                    'number' => $permanentNumber,
+                    'givenName' => $driverData['givenName'],
+                    'familyName' => $driverData['familyName'],
+                    'nationality' => $driverData['nationality'] ?? null,
+                    'permanentNumber' => $permanentNumber,
+                    'constructorId' => $constructorId,
+                    'constructorName' => $constructorName,
+                ];
             }
         }
 
@@ -236,53 +199,58 @@ class SyncF1Season extends Command
     protected function createEventsForRound(Season $season, Track $track, array $race): void
     {
         $round = (int) $race['round'];
+        $gpName = $race['raceName'];
 
         if (isset($race['SprintQualifying'])) {
-            $this->createEvent($season, $track, $round, 'sprint_qualifying',
-                "{$track->name} Sprint Qualifying",
+            $this->upsertEvent($season, $track, $round, 'sprint_qualifying',
+                "{$gpName} Sprint Qualifying",
                 $race['SprintQualifying']['date'],
                 $race['SprintQualifying']['time'] ?? null,
             );
         }
 
         if (isset($race['Qualifying'])) {
-            $this->createEvent($season, $track, $round, 'qualifying',
-                "{$track->name} Qualifying",
+            $this->upsertEvent($season, $track, $round, 'qualifying',
+                "{$gpName} Qualifying",
                 $race['Qualifying']['date'],
                 $race['Qualifying']['time'] ?? null,
             );
         }
 
         if (isset($race['Sprint'])) {
-            $this->createEvent($season, $track, $round, 'sprint',
-                "{$track->name} Sprint",
+            $this->upsertEvent($season, $track, $round, 'sprint',
+                "{$gpName} Sprint",
                 $race['Sprint']['date'],
                 $race['Sprint']['time'] ?? null,
             );
         }
 
-        $this->createEvent($season, $track, $round, 'race',
-            $race['raceName'],
+        $this->upsertEvent($season, $track, $round, 'race',
+            $gpName,
             $race['date'],
             $race['time'] ?? null,
         );
     }
 
-    protected function createEvent(Season $season, Track $track, int $round, string $type, string $name, string $date, ?string $time): Event
+    protected function upsertEvent(Season $season, Track $track, int $round, string $type, string $name, string $date, ?string $time): Event
     {
         $scheduledAt = $date . 'T' . ($time ? rtrim($time, 'Z') : '00:00:00');
         $isPast = now()->isAfter($scheduledAt);
 
-        return Event::create([
-            'season_id' => $season->id,
-            'track_id' => $track->id,
-            'name' => $name,
-            'type' => $type,
-            'scheduled_at' => $scheduledAt,
-            'locked_at' => $isPast ? $scheduledAt : null,
-            'status' => $isPast ? 'completed' : 'scheduled',
-            'sort_order' => $round * 10 + $this->typeOffset[$type],
-            'round' => $round,
-        ]);
+        return Event::updateOrCreate(
+            [
+                'season_id' => $season->id,
+                'round' => $round,
+                'type' => $type,
+            ],
+            [
+                'track_id' => $track->id,
+                'name' => $name,
+                'scheduled_at' => $scheduledAt,
+                'locked_at' => $isPast ? $scheduledAt : null,
+                'status' => $isPast ? 'completed' : 'scheduled',
+                'sort_order' => $round * 10 + $this->typeOffset[$type],
+            ],
+        );
     }
 }
