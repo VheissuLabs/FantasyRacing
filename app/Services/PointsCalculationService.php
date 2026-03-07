@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\BonusPointsScheme;
 use App\Models\Event;
+use App\Models\EventConstructorResult;
 use App\Models\EventPitstop;
 use App\Models\EventResult;
 use App\Models\FantasyEventPoint;
@@ -15,29 +16,57 @@ use App\Models\RosterSnapshot;
 class PointsCalculationService
 {
     /**
-     * Calculate and persist fantasy_event_points for all teams across all leagues
-     * that play in the given event's season.
+     * Calculate and store fantasy points on event_results (drivers) and
+     * event_constructor_results (constructors) for the given event.
      */
     public function calculateForEvent(Event $event): void
     {
         $event->loadMissing('season.franchise');
+        $franchiseId = $event->season->franchise_id;
 
-        $leagues = League::where('season_id', $event->season_id)->get();
+        $results = EventResult::where('event_id', $event->id)->get();
 
-        foreach ($leagues as $league) {
-            foreach ($league->fantasyTeams as $team) {
-                $this->calculateForTeam($team, $event);
-            }
+        foreach ($results as $result) {
+            [$points, $breakdown] = $this->driverPoints($result, $event, $franchiseId);
+            $result->update([
+                'fantasy_points' => $points,
+                'fantasy_breakdown' => $breakdown,
+            ]);
+        }
+
+        $constructorIds = $results->pluck('constructor_id')->unique();
+
+        foreach ($constructorIds as $constructorId) {
+            $constructorResults = $results->where('constructor_id', $constructorId);
+            [$points, $breakdown] = $this->constructorPoints($constructorResults, $event, $franchiseId);
+
+            EventConstructorResult::updateOrCreate(
+                ['event_id' => $event->id, 'constructor_id' => $constructorId],
+                [
+                    'fantasy_points' => $points,
+                    'fantasy_breakdown' => $breakdown,
+                ],
+            );
         }
     }
 
     /**
-     * Calculate and persist points for a single fantasy team for one event.
+     * Aggregate fantasy points from event_results / event_constructor_results
+     * into fantasy_event_points for all leagues in the event's season.
      */
-    public function calculateForTeam(FantasyTeam $team, Event $event): void
+    public function aggregateForFantasyTeams(Event $event): void
     {
-        $franchiseId = $event->season->franchise_id;
+        $leagues = League::where('season_id', $event->season_id)->get();
 
+        foreach ($leagues as $league) {
+            foreach ($league->fantasyTeams as $team) {
+                $this->aggregateForTeam($team, $event);
+            }
+        }
+    }
+
+    protected function aggregateForTeam(FantasyTeam $team, Event $event): void
+    {
         $snapshot = RosterSnapshot::where('event_id', $event->id)
             ->where('fantasy_team_id', $team->id)
             ->first();
@@ -46,32 +75,42 @@ class PointsCalculationService
             $entries = collect($snapshot->snapshot);
 
             foreach ($entries->where('entity_type', 'driver')->where('in_seat', true) as $entry) {
-                $this->storeEntityPoints($team, $event, 'driver', $entry['entity_id'], $franchiseId);
+                $this->storeFantasyPoints($team, $event, 'driver', $entry['entity_id']);
             }
 
             $constructor = $entries->firstWhere('entity_type', 'constructor');
 
             if ($constructor) {
-                $this->storeEntityPoints($team, $event, 'constructor', $constructor['entity_id'], $franchiseId);
+                $this->storeFantasyPoints($team, $event, 'constructor', $constructor['entity_id']);
             }
         } else {
             foreach ($team->inSeatDrivers as $rosterEntry) {
-                $this->storeEntityPoints($team, $event, 'driver', $rosterEntry->entity_id, $franchiseId);
+                $this->storeFantasyPoints($team, $event, 'driver', $rosterEntry->entity_id);
             }
 
             $constructorEntry = $team->constructor();
 
             if ($constructorEntry) {
-                $this->storeEntityPoints($team, $event, 'constructor', $constructorEntry->entity_id, $franchiseId);
+                $this->storeFantasyPoints($team, $event, 'constructor', $constructorEntry->entity_id);
             }
         }
     }
 
-    protected function storeEntityPoints(FantasyTeam $team, Event $event, string $entityType, int $entityId, int $franchiseId): void
+    protected function storeFantasyPoints(FantasyTeam $team, Event $event, string $entityType, int $entityId): void
     {
-        [$points, $breakdown] = $entityType === 'driver'
-            ? $this->driverPoints($entityId, $event, $franchiseId)
-            : $this->constructorPoints($entityId, $event, $franchiseId);
+        if ($entityType === 'driver') {
+            $result = EventResult::where('event_id', $event->id)
+                ->where('driver_id', $entityId)
+                ->first();
+            $points = $result?->fantasy_points ?? 0;
+            $breakdown = $result?->fantasy_breakdown ?? [];
+        } else {
+            $result = EventConstructorResult::where('event_id', $event->id)
+                ->where('constructor_id', $entityId)
+                ->first();
+            $points = $result?->fantasy_points ?? 0;
+            $breakdown = $result?->fantasy_breakdown ?? [];
+        }
 
         FantasyEventPoint::updateOrCreate(
             [
@@ -91,18 +130,8 @@ class PointsCalculationService
     /**
      * @return array{0: float, 1: array<string, float>}
      */
-    protected function driverPoints(int $driverId, Event $event, int $franchiseId): array
+    protected function driverPoints(EventResult $result, Event $event, int $franchiseId): array
     {
-        $result = EventResult::where('event_id', $event->id)
-            ->where('driver_id', $driverId)
-            ->first();
-
-        if (! $result) {
-            $penalty = $this->bonus($event->type, 'dnf_penalty', 'driver', $franchiseId);
-
-            return [$penalty, ['dnf_penalty' => $penalty, 'note' => 'no_result']];
-        }
-
         $breakdown = [];
         $points = 0.0;
 
@@ -172,14 +201,11 @@ class PointsCalculationService
     }
 
     /**
+     * @param  \Illuminate\Support\Collection<int, EventResult>  $results
      * @return array{0: float, 1: array<string, float>}
      */
-    protected function constructorPoints(int $constructorId, Event $event, int $franchiseId): array
+    protected function constructorPoints($results, Event $event, int $franchiseId): array
     {
-        $results = EventResult::where('event_id', $event->id)
-            ->where('constructor_id', $constructorId)
-            ->get();
-
         $breakdown = [];
         $points = 0.0;
 
@@ -208,6 +234,7 @@ class PointsCalculationService
                 }
             }
 
+            $constructorId = $results->first()->constructor_id;
             $pitstop = $this->pitstopPoints($constructorId, $event, $franchiseId);
             $points += $pitstop['total'];
             $breakdown = array_merge($breakdown, $pitstop['breakdown']);

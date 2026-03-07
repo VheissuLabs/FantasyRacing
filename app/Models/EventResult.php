@@ -25,6 +25,8 @@ class EventResult extends Model
         'q3_time',
         'teammate_outqualified',
         'points_eligible',
+        'fantasy_points',
+        'fantasy_breakdown',
         'data_source',
         'notes',
     ];
@@ -60,6 +62,8 @@ class EventResult extends Model
             'fastest_lap' => 'boolean',
             'driver_of_the_day' => 'boolean',
             'points_eligible' => 'boolean',
+            'fantasy_points' => 'decimal:2',
+            'fantasy_breakdown' => 'array',
             'q1_time' => 'datetime:H:i:s',
             'q2_time' => 'datetime:H:i:s',
             'q3_time' => 'datetime:H:i:s',

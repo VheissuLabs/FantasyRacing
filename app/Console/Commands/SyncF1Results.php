@@ -499,12 +499,12 @@ class SyncF1Results extends Command
             $constructor = $seasonDriver->constructor;
 
             $position = (int) $result['position'];
-            $bestTime = isset($result['duration']) ? $this->secondsToTime((float) $result['duration']) : null;
+            $durations = $result['duration'] ?? [];
 
             $isClassified = ! $result['dnf'] && ! $result['dns'] && ! $result['dsq'];
-            $q1Time = $isClassified ? $bestTime : null;
-            $q2Time = ($isClassified && $position <= 15) ? $bestTime : null;
-            $q3Time = ($isClassified && $position <= 10) ? $bestTime : null;
+            $q1Time = ($isClassified && isset($durations[0])) ? $this->secondsToTime((float) $durations[0]) : null;
+            $q2Time = ($isClassified && isset($durations[1])) ? $this->secondsToTime((float) $durations[1]) : null;
+            $q3Time = ($isClassified && isset($durations[2])) ? $this->secondsToTime((float) $durations[2]) : null;
 
             EventResult::updateOrCreate(
                 ['event_id' => $event->id, 'driver_id' => $driver->id],
@@ -522,6 +522,8 @@ class SyncF1Results extends Command
                 ],
             );
         }
+
+        $this->recordMissingDriversAsDns($event, $driverMap, $results->pluck('driver_number')->map(fn ($n) => (int) $n), $openF1);
 
         $count = EventResult::where('event_id', $event->id)->count();
         $this->line("  Synced {$count} qualifying results.");
@@ -586,6 +588,8 @@ class SyncF1Results extends Command
                 ->update(['grid_position' => (int) $gridEntry['position']]);
         }
 
+        $this->recordMissingDriversAsDns($event, $driverMap, $results->pluck('driver_number')->map(fn ($n) => (int) $n), $openF1);
+
         $count = EventResult::where('event_id', $event->id)->count();
         $this->line("  Synced {$count} results.");
 
@@ -647,6 +651,33 @@ class SyncF1Results extends Command
     // ──────────────────────────────────────────────────────
     // Shared helpers
     // ──────────────────────────────────────────────────────
+
+    protected function recordMissingDriversAsDns(Event $event, Collection $driverMap, Collection $syncedNumbers, OpenF1 $openF1): void
+    {
+        $missingDrivers = $driverMap->reject(fn ($sd, $number) => $syncedNumbers->contains($number));
+
+        foreach ($missingDrivers as $number => $seasonDriver) {
+            $laps = $openF1->getLaps($event->openf1_session_key, $number);
+            $status = $laps->isNotEmpty() ? 'dnf' : 'dns';
+            $lastPosition = EventResult::where('event_id', $event->id)->max('finish_position') ?? 0;
+
+            EventResult::updateOrCreate(
+                ['event_id' => $event->id, 'driver_id' => $seasonDriver->driver_id],
+                [
+                    'constructor_id' => $seasonDriver->constructor_id,
+                    'finish_position' => ++$lastPosition,
+                    'grid_position' => null,
+                    'status' => $status,
+                    'fastest_lap' => false,
+                    'driver_of_the_day' => false,
+                    'data_source' => 'openf1',
+                ],
+            );
+
+            $statusLabel = strtoupper($status);
+            $this->line("  → {$statusLabel}: {$seasonDriver->driver->name} (#{$number})");
+        }
+    }
 
     protected function markFastestPitStop(Event $event): void
     {

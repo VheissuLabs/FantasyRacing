@@ -88,6 +88,8 @@ class OpenF1
 
         $response = Http::timeout(self::TIMEOUT)->get(self::BASE_URL . $endpoint, $params);
 
-        return collect($response->json() ?? []);
+        $data = $response->json();
+
+        return is_array($data) ? collect($data) : collect();
     }
 }
