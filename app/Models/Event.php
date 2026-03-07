@@ -24,6 +24,7 @@ class Event extends Model
         'status',
         'sort_order',
         'round',
+        'openf1_session_key',
         'last_synced_at',
     ];
 
