@@ -63,6 +63,11 @@ class OpenF1
         return $this->get('/meetings', $params);
     }
 
+    public function getPositions(int $sessionKey): Collection
+    {
+        return $this->get('/position', ['session_key' => $sessionKey]);
+    }
+
     public function getLaps(int $sessionKey, ?int $driverNumber = null): Collection
     {
         $params = ['session_key' => $sessionKey];
