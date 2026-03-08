@@ -1,5 +1,6 @@
 <script setup lang="ts">
-    import { Head, Link, router } from '@inertiajs/vue3'
+    import { Head, Link } from '@inertiajs/vue3'
+    import { computed } from 'vue'
     import { Badge } from '@/components/ui/badge'
     import {
         Card,
@@ -7,12 +8,12 @@
         CardHeader,
         CardTitle,
     } from '@/components/ui/card'
+    import { useGlobalFilters } from '@/composables/useGlobalFilters'
     import AppLayout from '@/layouts/AppLayout.vue'
     import { type BreadcrumbItem } from '@/types'
     import {
         index as constructorsIndex,
         show as constructorShow,
-        season as constructorSeason,
     } from '@/actions/App/Http/Controllers/ConstructorProfileController'
 
     interface Country {
@@ -45,10 +46,6 @@
         races_entered: number
         wins: number
         podiums: number
-        one_twos: number
-        poles: number
-        fastest_laps: number
-        points_total: number
         best_championship: number | null
     }
 
@@ -57,17 +54,16 @@
         races_entered: number
         wins: number
         podiums: number
-        one_twos: number
-        poles: number
-        fastest_laps: number
         points_total: string
         championship_position: number
+        fantasy_points_total: string
         season: { id: number; name: string; year: number }
     }
 
     interface GroupedEventResult {
-        event: { id: number; name: string }
+        event: { id: number; name: string; type: string }
         track: { id: number; name: string }
+        fantasy_points: string | null
         results: {
             driver: { id: number; name: string; slug: string }
             grid_position: number | null
@@ -75,13 +71,14 @@
             status: string
             fastest_lap: boolean
             driver_of_the_day: boolean
+            fia_points: string | null
+            fantasy_points: string | null
         }[]
     }
 
-    interface FantasyStats {
-        ownership_pct: string | null
-        avg_points: string | null
-        best_haul: string | null
+    interface SeasonResults {
+        season: { id: number; name: string; year: number }
+        events: GroupedEventResult[]
     }
 
     interface AvailableSeason {
@@ -92,18 +89,12 @@
 
     const props = defineProps<{
         constructor: ConstructorModel
-        currentDrivers?: DriverRef[]
-        careerSummary?: CareerSummary
-        seasonStats?: SeasonStat[]
-        fantasyStats?: FantasyStats
+        currentDrivers: DriverRef[]
+        careerSummary: CareerSummary
+        seasonStats: SeasonStat[]
+        resultsBySeason: SeasonResults[]
         availableSeasons: AvailableSeason[]
-        season?: { id: number; name: string; year: number }
-        seasonStat?: SeasonStat
-        seasonDrivers?: DriverRef[]
-        eventResults?: GroupedEventResult[]
     }>()
-
-    const isSeasonView = !!props.season
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Constructors', href: constructorsIndex().url },
@@ -111,78 +102,46 @@
             title: props.constructor.name,
             href: constructorShow({ constructor: props.constructor.slug }).url,
         },
-        ...(props.season ? [{ title: props.season.name }] : []),
     ]
 
-    function onSeasonChange(event: globalThis.Event) {
-        const target = event.target as HTMLSelectElement
-        const value = target.value
-        if (value === '') {
-            router.get(
-                constructorShow({ constructor: props.constructor.slug }).url,
+    const { selectedSeasonId } = useGlobalFilters()
+
+    const careerItems = [
+        { label: 'Seasons', value: props.careerSummary.seasons },
+        { label: 'Races', value: props.careerSummary.races_entered },
+        { label: 'Wins', value: props.careerSummary.wins },
+        { label: 'Podiums', value: props.careerSummary.podiums },
+        {
+            label: 'Best Championship',
+            value: props.careerSummary.best_championship
+                ? `P${props.careerSummary.best_championship}`
+                : '-',
+        },
+    ]
+
+    const effectiveSeasonId = computed(() => {
+        if (selectedSeasonId.value) {
+            const exists = props.availableSeasons?.some(
+                (s) => s.id === selectedSeasonId.value,
             )
-        } else {
-            router.get(
-                constructorSeason({
-                    constructor: props.constructor.slug,
-                    season: Number(value),
-                }).url,
-            )
+            if (exists) return selectedSeasonId.value
         }
-    }
+        return props.availableSeasons?.[0]?.id ?? null
+    })
 
-    const statItems =
-        isSeasonView && props.seasonStat
-            ? [
-                  { label: 'Races', value: props.seasonStat.races_entered },
-                  { label: 'Wins', value: props.seasonStat.wins },
-                  { label: 'Podiums', value: props.seasonStat.podiums },
-                  { label: '1-2 Finishes', value: props.seasonStat.one_twos },
-                  { label: 'Poles', value: props.seasonStat.poles },
-                  {
-                      label: 'Fastest Laps',
-                      value: props.seasonStat.fastest_laps,
-                  },
-                  { label: 'Points', value: props.seasonStat.points_total },
-                  {
-                      label: 'Championship',
-                      value: props.seasonStat.championship_position
-                          ? `P${props.seasonStat.championship_position}`
-                          : '-',
-                  },
-              ]
-            : props.careerSummary
-              ? [
-                    { label: 'Seasons', value: props.careerSummary.seasons },
-                    {
-                        label: 'Races',
-                        value: props.careerSummary.races_entered,
-                    },
-                    { label: 'Wins', value: props.careerSummary.wins },
-                    { label: 'Podiums', value: props.careerSummary.podiums },
-                    {
-                        label: '1-2 Finishes',
-                        value: props.careerSummary.one_twos,
-                    },
-                    { label: 'Poles', value: props.careerSummary.poles },
-                    {
-                        label: 'Fastest Laps',
-                        value: props.careerSummary.fastest_laps,
-                    },
-                    {
-                        label: 'Points',
-                        value: props.careerSummary.points_total,
-                    },
-                    {
-                        label: 'Best Championship',
-                        value: props.careerSummary.best_championship
-                            ? `P${props.careerSummary.best_championship}`
-                            : '-',
-                    },
-                ]
-              : []
+    const selectedSeasonStat = computed(() => {
+        if (!effectiveSeasonId.value) return null
+        return props.seasonStats?.find(
+            (s) => s.season.id === effectiveSeasonId.value,
+        )
+    })
 
-    const drivers = isSeasonView ? props.seasonDrivers : props.currentDrivers
+    const selectedSeasonResults = computed(() => {
+        if (!effectiveSeasonId.value) return null
+        return props.resultsBySeason?.find(
+            (s) => s.season.id === effectiveSeasonId.value,
+        )
+    })
 </script>
 
 <template>
@@ -227,20 +186,18 @@
                 </div>
             </div>
 
-            <!-- Current/Season Drivers -->
+            <!-- Current Drivers -->
             <Card
-                v-if="drivers && drivers.length > 0"
+                v-if="currentDrivers && currentDrivers.length > 0"
                 class="mb-8"
             >
                 <CardHeader>
-                    <CardTitle class="text-sm">{{
-                        isSeasonView ? 'Drivers' : 'Current Drivers'
-                    }}</CardTitle>
+                    <CardTitle class="text-sm">Current Drivers</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div class="flex flex-wrap gap-4">
                         <Link
-                            v-for="driverItem in drivers"
+                            v-for="driverItem in currentDrivers"
                             :key="driverItem.id"
                             :href="`/drivers/${driverItem.slug}`"
                             class="flex items-center gap-3 rounded-lg border p-3 transition hover:bg-muted/50"
@@ -263,138 +220,79 @@
                 </CardContent>
             </Card>
 
-            <!-- Season selector -->
-            <div class="mb-6">
-                <select
-                    @change="onSeasonChange"
-                    :value="season?.id ?? ''"
-                    class="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs ring-offset-background placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
-                >
-                    <option value="">Career Overview</option>
-                    <option
-                        v-for="availableSeason in availableSeasons"
-                        :key="availableSeason.id"
-                        :value="availableSeason.id"
-                    >
-                        {{ availableSeason.name }}
-                    </option>
-                </select>
-            </div>
-
-            <!-- Stats grid -->
-            <div
-                v-if="statItems.length"
-                class="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4"
-            >
-                <Card
-                    v-for="stat in statItems"
-                    :key="stat.label"
-                >
-                    <CardContent class="p-4 text-center">
-                        <p class="text-2xl font-bold">{{ stat.value }}</p>
-                        <p class="text-xs text-muted-foreground">
-                            {{ stat.label }}
-                        </p>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <!-- Season History table (overview only) -->
-            <Card
-                v-if="!isSeasonView && seasonStats && seasonStats.length > 0"
-                class="mb-8"
-            >
+            <!-- Career Overview -->
+            <Card class="mb-8">
                 <CardHeader>
-                    <CardTitle class="text-sm">Season History</CardTitle>
+                    <CardTitle class="text-sm">Career Overview</CardTitle>
                 </CardHeader>
-                <CardContent class="p-0">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead>
-                                <tr
-                                    class="border-b text-left text-xs text-muted-foreground"
-                                >
-                                    <th class="px-4 py-2 font-medium">Year</th>
-                                    <th
-                                        class="px-4 py-2 text-right font-medium"
-                                    >
-                                        Races
-                                    </th>
-                                    <th
-                                        class="px-4 py-2 text-right font-medium"
-                                    >
-                                        Wins
-                                    </th>
-                                    <th
-                                        class="px-4 py-2 text-right font-medium"
-                                    >
-                                        Podiums
-                                    </th>
-                                    <th
-                                        class="px-4 py-2 text-right font-medium"
-                                    >
-                                        1-2s
-                                    </th>
-                                    <th
-                                        class="px-4 py-2 text-right font-medium"
-                                    >
-                                        Pts
-                                    </th>
-                                    <th
-                                        class="px-4 py-2 text-right font-medium"
-                                    >
-                                        Pos
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr
-                                    v-for="stat in seasonStats"
-                                    :key="stat.id"
-                                    class="border-b last:border-0 hover:bg-muted/50"
-                                >
-                                    <td class="px-4 py-2">
-                                        <Link
-                                            :href="
-                                                constructorSeason({
-                                                    constructor:
-                                                        constructor.slug,
-                                                    season: stat.season.id,
-                                                }).url
-                                            "
-                                            class="text-primary hover:underline"
-                                        >
-                                            {{ stat.season.name }}
-                                        </Link>
-                                    </td>
-                                    <td class="px-4 py-2 text-right">
-                                        {{ stat.races_entered }}
-                                    </td>
-                                    <td class="px-4 py-2 text-right">
-                                        {{ stat.wins }}
-                                    </td>
-                                    <td class="px-4 py-2 text-right">
-                                        {{ stat.podiums }}
-                                    </td>
-                                    <td class="px-4 py-2 text-right">
-                                        {{ stat.one_twos }}
-                                    </td>
-                                    <td class="px-4 py-2 text-right">
-                                        {{ stat.points_total }}
-                                    </td>
-                                    <td class="px-4 py-2 text-right">
-                                        P{{ stat.championship_position }}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                <CardContent>
+                    <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                        <div
+                            v-for="stat in careerItems"
+                            :key="stat.label"
+                            class="text-center"
+                        >
+                            <p class="text-2xl font-bold">{{ stat.value }}</p>
+                            <p class="text-xs text-muted-foreground">
+                                {{ stat.label }}
+                            </p>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
 
-            <!-- Event Results (season view, grouped by event) -->
+            <!-- Season Overview -->
             <Card
-                v-if="isSeasonView && eventResults && eventResults.length > 0"
+                v-if="selectedSeasonStat"
+                class="mb-8"
+            >
+                <CardHeader>
+                    <CardTitle class="text-sm">
+                        {{ selectedSeasonStat.season.name }} Season Overview
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                        <div class="text-center">
+                            <p class="text-2xl font-bold">
+                                {{ selectedSeasonStat.points_total }}
+                            </p>
+                            <p class="text-xs text-muted-foreground">
+                                FIA Points
+                            </p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-2xl font-bold">
+                                {{ selectedSeasonStat.fantasy_points_total }}
+                            </p>
+                            <p class="text-xs text-muted-foreground">
+                                Fantasy Points
+                            </p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-2xl font-bold">
+                                {{ selectedSeasonStat.races_entered }}
+                            </p>
+                            <p class="text-xs text-muted-foreground">Races</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-2xl font-bold">
+                                P{{ selectedSeasonStat.championship_position }}
+                            </p>
+                            <p class="text-xs text-muted-foreground">
+                                Championship
+                            </p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <!-- Event Results -->
+            <Card
+                v-if="
+                    selectedSeasonResults &&
+                    selectedSeasonResults.events.length > 0
+                "
                 class="mb-8"
             >
                 <CardHeader>
@@ -425,11 +323,21 @@
                                         Status
                                     </th>
                                     <th class="px-4 py-2 font-medium"></th>
+                                    <th
+                                        class="px-4 py-2 text-right font-medium"
+                                    >
+                                        FIA Pts
+                                    </th>
+                                    <th
+                                        class="px-4 py-2 text-right font-medium"
+                                    >
+                                        Fantasy Pts
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <template
-                                    v-for="group in eventResults"
+                                    v-for="group in selectedSeasonResults.events"
                                     :key="group.event.id"
                                 >
                                     <tr
@@ -443,7 +351,7 @@
                                                 <span
                                                     class="text-xs text-muted-foreground"
                                                     >{{
-                                                        group.track.name
+                                                        group.track?.name ?? '-'
                                                     }}</span
                                                 >
                                             </template>
@@ -487,60 +395,34 @@
                                                 </Badge>
                                             </div>
                                         </td>
+                                        <td class="px-4 py-2 text-right">
+                                            {{ result.fia_points ?? '-' }}
+                                        </td>
+                                        <td class="px-4 py-2 text-right">
+                                            <template v-if="index === 0">
+                                                <span
+                                                    :class="{
+                                                        'text-red-500':
+                                                            Number(
+                                                                group.fantasy_points,
+                                                            ) < 0,
+                                                        'text-green-500':
+                                                            Number(
+                                                                group.fantasy_points,
+                                                            ) > 0,
+                                                    }"
+                                                >
+                                                    {{
+                                                        group.fantasy_points ??
+                                                        '-'
+                                                    }}
+                                                </span>
+                                            </template>
+                                        </td>
                                     </tr>
                                 </template>
                             </tbody>
                         </table>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <!-- Fantasy Stats -->
-            <Card
-                v-if="
-                    fantasyStats &&
-                    (fantasyStats.ownership_pct || fantasyStats.avg_points)
-                "
-            >
-                <CardHeader>
-                    <CardTitle class="text-sm">Fantasy Stats</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div class="grid grid-cols-3 gap-4 text-center">
-                        <div>
-                            <p class="text-xl font-bold">
-                                {{
-                                    fantasyStats.ownership_pct
-                                        ? `${fantasyStats.ownership_pct}%`
-                                        : '-'
-                                }}
-                            </p>
-                            <p class="text-xs text-muted-foreground">
-                                Ownership
-                            </p>
-                        </div>
-                        <div>
-                            <p class="text-xl font-bold">
-                                {{
-                                    fantasyStats.avg_points
-                                        ? Number(
-                                              fantasyStats.avg_points,
-                                          ).toFixed(1)
-                                        : '-'
-                                }}
-                            </p>
-                            <p class="text-xs text-muted-foreground">
-                                Avg Points
-                            </p>
-                        </div>
-                        <div>
-                            <p class="text-xl font-bold">
-                                {{ fantasyStats.best_haul ?? '-' }}
-                            </p>
-                            <p class="text-xs text-muted-foreground">
-                                Best Haul
-                            </p>
-                        </div>
                     </div>
                 </CardContent>
             </Card>

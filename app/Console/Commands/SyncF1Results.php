@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\CalculateEventPoints;
 use App\Models\Constructor;
 use App\Models\Driver;
 use App\Models\Event;
@@ -14,6 +15,7 @@ use App\Services\Jolpica;
 use App\Services\OpenF1;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class SyncF1Results extends Command
 {
@@ -21,25 +23,15 @@ class SyncF1Results extends Command
         {--season= : Season year (defaults to current year)}
         {--round= : Only sync events for this round number}
         {--type= : Only sync events of this type (qualifying, race, sprint, sprint_qualifying)}
-        {--source=openf1 : Data source to use (jolpica or openf1)}
         {--force : Re-sync events even if already completed}';
 
-    protected $description = 'Sync F1 event results from Jolpica or OpenF1';
+    protected $description = 'Sync F1 event results from Jolpica, enriched with OpenF1 data';
 
     protected F1DataService $f1;
-
-    protected string $source;
 
     public function handle(Jolpica $jolpica, OpenF1 $openF1, F1DataService $f1): int
     {
         $this->f1 = $f1;
-        $this->source = $this->option('source');
-
-        if (! in_array($this->source, ['jolpica', 'openf1'])) {
-            $this->error("Invalid source: {$this->source}. Use 'jolpica' or 'openf1'.");
-
-            return Command::FAILURE;
-        }
 
         $events = $this->getEventsToSync();
 
@@ -49,14 +41,10 @@ class SyncF1Results extends Command
             return Command::SUCCESS;
         }
 
-        $this->info("Syncing {$events->count()} event(s) from {$this->source}...");
+        $this->info("Syncing {$events->count()} event(s)...");
 
         foreach ($events as $event) {
-            if ($this->source === 'openf1') {
-                $this->syncEventFromOpenF1($event, $openF1);
-            } else {
-                $this->syncEventFromJolpica($event, $jolpica);
-            }
+            $this->syncEvent($event, $jolpica, $openF1);
         }
 
         return Command::SUCCESS;
@@ -93,20 +81,23 @@ class SyncF1Results extends Command
             });
         }
 
+        $query->where('scheduled_at', '<=', now());
+
         return $query->orderBy('sort_order')->get();
     }
 
     // ──────────────────────────────────────────────────────
-    // Jolpica sync methods
+    // Unified sync: Jolpica for results, OpenF1 to enrich
     // ──────────────────────────────────────────────────────
 
-    protected function syncEventFromJolpica(Event $event, Jolpica $jolpica): void
+    protected function syncEvent(Event $event, Jolpica $jolpica, OpenF1 $openF1): void
     {
         $year = $event->season->year;
         $round = $event->round;
 
-        $this->info("Syncing: {$event->name} (Round {$round})");
+        $this->info("Syncing: {$event->name} ({$event->type}, Round {$round})");
 
+        // Build driver map for this season
         $driverMap = SeasonDriver::where('season_id', $event->season_id)
             ->whereNotNull('number')
             ->with('driver')
@@ -114,20 +105,31 @@ class SyncF1Results extends Command
             ->keyBy('number')
             ->map(fn ($sd) => $sd->driver);
 
+        // 1. Sync results from Jolpica (primary source)
         match ($event->type) {
-            'race' => $this->jolpicaSyncRace($event, $jolpica, $year, $round, $driverMap),
-            'qualifying' => $this->jolpicaSyncQualifying($event, $jolpica, $year, $round, $driverMap),
-            'sprint' => $this->jolpicaSyncSprint($event, $jolpica, $year, $round, $driverMap),
-            'sprint_qualifying' => $this->jolpicaSyncSprintQualifying($event, $jolpica, $year, $round, $driverMap),
+            'race' => $this->syncRace($event, $jolpica, $year, $round, $driverMap),
+            'qualifying' => $this->syncQualifying($event, $jolpica, $year, $round, $driverMap),
+            'sprint' => $this->syncSprint($event, $jolpica, $year, $round, $driverMap),
+            'sprint_qualifying' => $this->syncSprintQualifying($event, $jolpica, $year, $round, $driverMap),
             default => null,
         };
 
+        // 2. Enrich with OpenF1 data (photos, colours, Q-times, teammate flags)
+        $this->enrichFromOpenF1($event, $openF1);
+
+        // 3. Mark completed and calculate points
         if ($event->results()->exists()) {
             $event->update(['status' => 'completed', 'last_synced_at' => now()]);
+            CalculateEventPoints::dispatch($event);
+            $this->line("  Dispatched points calculation for {$event->name}.");
         }
     }
 
-    protected function jolpicaSyncRace(Event $event, Jolpica $jolpica, int $year, int $round, Collection $driverMap): void
+    // ──────────────────────────────────────────────────────
+    // Jolpica: core results
+    // ──────────────────────────────────────────────────────
+
+    protected function syncRace(Event $event, Jolpica $jolpica, int $year, int $round, Collection $driverMap): void
     {
         $results = $jolpica->getRaceResults($year, $round);
 
@@ -139,13 +141,13 @@ class SyncF1Results extends Command
 
         foreach ($results as $result) {
             $driverNumber = (int) $result['number'];
-            $constructor = $this->resolveJolpicaConstructor($result);
+            $constructor = $this->resolveConstructor($result);
 
             if (! $constructor) {
                 continue;
             }
 
-            $driver = $this->resolveJolpicaDriver($driverNumber, $result, $event, $constructor, $driverMap);
+            $driver = $this->resolveDriver($driverNumber, $result, $event, $constructor, $driverMap);
             $hasFastestLap = ($result['FastestLap']['rank'] ?? null) === '1';
 
             EventResult::updateOrCreate(
@@ -154,7 +156,7 @@ class SyncF1Results extends Command
                     'constructor_id' => $constructor->id,
                     'finish_position' => (int) $result['position'],
                     'grid_position' => ($result['grid'] ?? 0) ?: null,
-                    'status' => $this->resolveJolpicaStatus($result['status']),
+                    'status' => $this->resolveStatus($result['status']),
                     'fastest_lap' => $hasFastestLap,
                     'driver_of_the_day' => false,
                     'data_source' => 'jolpica',
@@ -173,10 +175,10 @@ class SyncF1Results extends Command
             return [$result['Driver']['driverId'] => $driverMap[(int) $result['number']] ?? null];
         })->filter();
 
-        $this->jolpicaSyncPitStops($event, $jolpica, $year, $round, $driverIdMap);
+        $this->syncPitStops($event, $jolpica, $year, $round, $driverIdMap);
     }
 
-    protected function jolpicaSyncQualifying(Event $event, Jolpica $jolpica, int $year, int $round, Collection $driverMap): void
+    protected function syncQualifying(Event $event, Jolpica $jolpica, int $year, int $round, Collection $driverMap): void
     {
         $results = $jolpica->getQualifyingResults($year, $round);
 
@@ -187,13 +189,17 @@ class SyncF1Results extends Command
         }
 
         foreach ($results as $result) {
-            $constructor = $this->resolveJolpicaConstructor($result);
+            $constructor = $this->resolveConstructor($result);
 
             if (! $constructor) {
                 continue;
             }
 
-            $driver = $this->resolveJolpicaDriver((int) $result['number'], $result, $event, $constructor, $driverMap);
+            $driver = $this->resolveDriver((int) $result['number'], $result, $event, $constructor, $driverMap);
+
+            $q1Time = isset($result['Q1']) ? $this->lapTimeToTime($result['Q1']) : null;
+            $q2Time = isset($result['Q2']) ? $this->lapTimeToTime($result['Q2']) : null;
+            $q3Time = isset($result['Q3']) ? $this->lapTimeToTime($result['Q3']) : null;
 
             EventResult::updateOrCreate(
                 ['event_id' => $event->id, 'driver_id' => $driver->id],
@@ -202,6 +208,9 @@ class SyncF1Results extends Command
                     'finish_position' => (int) $result['position'],
                     'grid_position' => (int) $result['position'],
                     'status' => 'classified',
+                    'q1_time' => $q1Time,
+                    'q2_time' => $q2Time,
+                    'q3_time' => $q3Time,
                     'fastest_lap' => false,
                     'driver_of_the_day' => false,
                     'data_source' => 'jolpica',
@@ -213,7 +222,7 @@ class SyncF1Results extends Command
         $this->line("  Synced {$count} qualifying results");
     }
 
-    protected function jolpicaSyncSprint(Event $event, Jolpica $jolpica, int $year, int $round, Collection $driverMap): void
+    protected function syncSprint(Event $event, Jolpica $jolpica, int $year, int $round, Collection $driverMap): void
     {
         $results = $jolpica->getSprintResults($year, $round);
 
@@ -224,13 +233,13 @@ class SyncF1Results extends Command
         }
 
         foreach ($results as $result) {
-            $constructor = $this->resolveJolpicaConstructor($result);
+            $constructor = $this->resolveConstructor($result);
 
             if (! $constructor) {
                 continue;
             }
 
-            $driver = $this->resolveJolpicaDriver((int) $result['number'], $result, $event, $constructor, $driverMap);
+            $driver = $this->resolveDriver((int) $result['number'], $result, $event, $constructor, $driverMap);
 
             EventResult::updateOrCreate(
                 ['event_id' => $event->id, 'driver_id' => $driver->id],
@@ -238,7 +247,7 @@ class SyncF1Results extends Command
                     'constructor_id' => $constructor->id,
                     'finish_position' => (int) $result['position'],
                     'grid_position' => ($result['grid'] ?? 0) ?: null,
-                    'status' => $this->resolveJolpicaStatus($result['status']),
+                    'status' => $this->resolveStatus($result['status']),
                     'fastest_lap' => false,
                     'driver_of_the_day' => false,
                     'data_source' => 'jolpica',
@@ -250,7 +259,7 @@ class SyncF1Results extends Command
         $this->line("  Synced {$count} sprint results");
     }
 
-    protected function jolpicaSyncSprintQualifying(Event $event, Jolpica $jolpica, int $year, int $round, Collection $driverMap): void
+    protected function syncSprintQualifying(Event $event, Jolpica $jolpica, int $year, int $round, Collection $driverMap): void
     {
         $results = $jolpica->getSprintQualifyingResults($year, $round);
 
@@ -261,13 +270,13 @@ class SyncF1Results extends Command
         }
 
         foreach ($results as $result) {
-            $constructor = $this->resolveJolpicaConstructor($result);
+            $constructor = $this->resolveConstructor($result);
 
             if (! $constructor) {
                 continue;
             }
 
-            $driver = $this->resolveJolpicaDriver((int) $result['number'], $result, $event, $constructor, $driverMap);
+            $driver = $this->resolveDriver((int) $result['number'], $result, $event, $constructor, $driverMap);
 
             EventResult::updateOrCreate(
                 ['event_id' => $event->id, 'driver_id' => $driver->id],
@@ -287,7 +296,7 @@ class SyncF1Results extends Command
         $this->line("  Synced {$count} sprint qualifying results");
     }
 
-    protected function jolpicaSyncPitStops(Event $event, Jolpica $jolpica, int $year, int $round, Collection $driverIdMap): void
+    protected function syncPitStops(Event $event, Jolpica $jolpica, int $year, int $round, Collection $driverIdMap): void
     {
         $pitstops = $jolpica->getPitStops($year, $round);
 
@@ -336,97 +345,85 @@ class SyncF1Results extends Command
         $this->markFastestPitStop($event);
     }
 
-    protected function resolveJolpicaDriver(int $number, array $result, Event $event, Constructor $constructor, Collection $driverMap): Driver
-    {
-        if ($driver = ($driverMap[$number] ?? null)) {
-            return $driver;
-        }
-
-        $driver = $this->f1->resolveDriver($result['Driver'], $event->season->franchise);
-
-        SeasonDriver::firstOrCreate(
-            [
-                'season_id' => $event->season_id,
-                'driver_id' => $driver->id,
-                'number' => $number,
-            ],
-            [
-                'constructor_id' => $constructor->id,
-                'effective_from' => "{$event->season->year}-01-01",
-            ],
-        );
-
-        $driverMap[$number] = $driver;
-
-        $this->line("  → Added mid-season driver: {$driver->name} (#{$number})");
-
-        return $driver;
-    }
-
-    protected function resolveJolpicaConstructor(array $result): ?Constructor
-    {
-        $constructorId = $result['Constructor']['constructorId'];
-        $constructor = Constructor::where('jolpica_constructor_id', $constructorId)->first();
-
-        if (! $constructor) {
-            $this->warn("  Constructor not found: {$constructorId}");
-        }
-
-        return $constructor;
-    }
-
-    protected function resolveJolpicaStatus(string $jolpicaStatus): string
-    {
-        if ($jolpicaStatus === 'Finished' || str_starts_with($jolpicaStatus, '+')) {
-            return 'classified';
-        }
-
-        if ($jolpicaStatus === 'Disqualified') {
-            return 'dsq';
-        }
-
-        if (in_array($jolpicaStatus, ['Did Not Start', 'Withdrew', 'Not Classified'])) {
-            return 'dns';
-        }
-
-        return 'dnf';
-    }
-
     // ──────────────────────────────────────────────────────
-    // OpenF1 sync methods
+    // OpenF1: enrichment (photos, colours, Q-times, flags)
     // ──────────────────────────────────────────────────────
 
-    protected function syncEventFromOpenF1(Event $event, OpenF1 $openF1): void
+    protected function enrichFromOpenF1(Event $event, OpenF1 $openF1): void
     {
-        $this->info("Syncing: {$event->name} ({$event->type}, Round {$event->round})");
-
         if (! $event->openf1_session_key) {
             $sessionKey = $this->discoverSessionKey($event, $openF1);
 
             if (! $sessionKey) {
-                $this->warn('  Could not discover session key from OpenF1.');
-
                 return;
             }
 
             $event->update(['openf1_session_key' => $sessionKey]);
-            $this->line("  Discovered session key: {$sessionKey}");
+            $this->line("  Discovered OpenF1 session key: {$sessionKey}");
         }
 
-        $driverMap = SeasonDriver::where('season_id', $event->season_id)
+        $sessionKey = $event->openf1_session_key;
+
+        $seasonDriverMap = SeasonDriver::where('season_id', $event->season_id)
             ->whereNotNull('number')
             ->with(['driver', 'constructor'])
             ->get()
             ->keyBy('number');
 
-        match ($event->type) {
-            'qualifying', 'sprint_qualifying' => $this->openF1SyncQualifying($event, $openF1, $driverMap),
-            'race', 'sprint' => $this->openF1SyncRaceOrSprint($event, $openF1, $driverMap),
-            default => null,
-        };
+        $openF1Drivers = $openF1->getDrivers($sessionKey)->keyBy('driver_number');
 
-        if ($event->results()->exists()) {
-            $event->update(['status' => 'completed', 'last_synced_at' => now()]);
+        // Sync driver photos and constructor colours
+        $this->syncDriverPhotos($seasonDriverMap, $openF1Drivers);
+        $this->syncConstructorColours($seasonDriverMap, $openF1Drivers);
+
+        // Enrich qualifying with precise Q-times from OpenF1
+        if (in_array($event->type, ['qualifying', 'sprint_qualifying'])) {
+            $this->enrichQualifyingTimes($event, $openF1, $seasonDriverMap, $openF1Drivers);
+            $this->computeTeammateOutqualified($event);
+        }
+    }
+
+    protected function enrichQualifyingTimes(Event $event, OpenF1 $openF1, Collection $seasonDriverMap, Collection $openF1Drivers): void
+    {
+        $results = $openF1->getSessionResults($event->openf1_session_key);
+
+        if ($results->isEmpty()) {
+            return;
+        }
+
+        $enriched = 0;
+
+        foreach ($results as $result) {
+            $driverNumber = (int) $result['driver_number'];
+            $seasonDriver = $this->resolveSeasonDriver($driverNumber, $seasonDriverMap, $openF1Drivers);
+
+            if (! $seasonDriver) {
+                continue;
+            }
+
+            $durations = $result['duration'] ?? [];
+            $isClassified = ! $result['dnf'] && ! $result['dns'] && ! $result['dsq'];
+
+            if (! $isClassified || empty($durations)) {
+                continue;
+            }
+
+            $update = array_filter([
+                'q1_time' => isset($durations[0]) ? $this->secondsToTime((float) $durations[0]) : null,
+                'q2_time' => isset($durations[1]) ? $this->secondsToTime((float) $durations[1]) : null,
+                'q3_time' => isset($durations[2]) ? $this->secondsToTime((float) $durations[2]) : null,
+            ]);
+
+            if (! empty($update)) {
+                EventResult::where('event_id', $event->id)
+                    ->where('driver_id', $seasonDriver->driver_id)
+                    ->update($update);
+                $enriched++;
+            }
+        }
+
+        if ($enriched > 0) {
+            $this->line("  Enriched {$enriched} qualifying times from OpenF1.");
         }
     }
 
@@ -470,183 +467,156 @@ class SyncF1Results extends Command
         return $match['session_key'] ?? null;
     }
 
-    protected function openF1SyncQualifying(Event $event, OpenF1 $openF1, Collection $driverMap): void
-    {
-        $sessionKey = $event->openf1_session_key;
-        $results = $openF1->getSessionResults($sessionKey);
-
-        if ($results->isEmpty()) {
-            $this->warn('  No session results from OpenF1.');
-
-            return;
-        }
-
-        $openF1Drivers = $openF1->getDrivers($sessionKey)->keyBy('driver_number');
-
-        foreach ($results as $result) {
-            $driverNumber = (int) $result['driver_number'];
-            $seasonDriver = $driverMap[$driverNumber] ?? null;
-
-            if (! $seasonDriver) {
-                $openF1Driver = $openF1Drivers[$driverNumber] ?? null;
-                $driverName = $openF1Driver['full_name'] ?? "Driver #{$driverNumber}";
-                $this->warn("  Driver not in season: {$driverName} (#{$driverNumber}) — skipping.");
-
-                continue;
-            }
-
-            $driver = $seasonDriver->driver;
-            $constructor = $seasonDriver->constructor;
-
-            $position = (int) $result['position'];
-            $bestTime = isset($result['duration']) ? $this->secondsToTime((float) $result['duration']) : null;
-
-            $isClassified = ! $result['dnf'] && ! $result['dns'] && ! $result['dsq'];
-            $q1Time = $isClassified ? $bestTime : null;
-            $q2Time = ($isClassified && $position <= 15) ? $bestTime : null;
-            $q3Time = ($isClassified && $position <= 10) ? $bestTime : null;
-
-            EventResult::updateOrCreate(
-                ['event_id' => $event->id, 'driver_id' => $driver->id],
-                [
-                    'constructor_id' => $constructor->id,
-                    'finish_position' => $position,
-                    'grid_position' => $position,
-                    'status' => $result['dnf'] ? 'dnf' : ($result['dns'] ? 'dns' : ($result['dsq'] ? 'dsq' : 'classified')),
-                    'q1_time' => $q1Time,
-                    'q2_time' => $q2Time,
-                    'q3_time' => $q3Time,
-                    'fastest_lap' => false,
-                    'driver_of_the_day' => false,
-                    'data_source' => 'openf1',
-                ],
-            );
-        }
-
-        $count = EventResult::where('event_id', $event->id)->count();
-        $this->line("  Synced {$count} qualifying results.");
-
-        $this->computeTeammateOutqualified($event);
-    }
-
-    protected function openF1SyncRaceOrSprint(Event $event, OpenF1 $openF1, Collection $driverMap): void
-    {
-        $sessionKey = $event->openf1_session_key;
-        $results = $openF1->getSessionResults($sessionKey);
-
-        if ($results->isEmpty()) {
-            $this->warn('  No session results from OpenF1.');
-
-            return;
-        }
-
-        $openF1Drivers = $openF1->getDrivers($sessionKey)->keyBy('driver_number');
-
-        foreach ($results as $result) {
-            $driverNumber = (int) $result['driver_number'];
-            $seasonDriver = $driverMap[$driverNumber] ?? null;
-
-            if (! $seasonDriver) {
-                $openF1Driver = $openF1Drivers[$driverNumber] ?? null;
-                $driverName = $openF1Driver['full_name'] ?? "Driver #{$driverNumber}";
-                $this->warn("  Driver not in season: {$driverName} (#{$driverNumber}) — skipping.");
-
-                continue;
-            }
-
-            $driver = $seasonDriver->driver;
-            $constructor = $seasonDriver->constructor;
-
-            EventResult::updateOrCreate(
-                ['event_id' => $event->id, 'driver_id' => $driver->id],
-                [
-                    'constructor_id' => $constructor->id,
-                    'finish_position' => (int) $result['position'],
-                    'grid_position' => null,
-                    'status' => $result['dnf'] ? 'dnf' : ($result['dns'] ? 'dns' : ($result['dsq'] ? 'dsq' : 'classified')),
-                    'fastest_lap' => false,
-                    'driver_of_the_day' => false,
-                    'data_source' => 'openf1',
-                ],
-            );
-        }
-
-        $startingGrid = $openF1->getStartingGrid($sessionKey);
-
-        foreach ($startingGrid as $gridEntry) {
-            $driverNumber = (int) $gridEntry['driver_number'];
-            $seasonDriver = $driverMap[$driverNumber] ?? null;
-
-            if (! $seasonDriver) {
-                continue;
-            }
-
-            EventResult::where('event_id', $event->id)
-                ->where('driver_id', $seasonDriver->driver_id)
-                ->update(['grid_position' => (int) $gridEntry['position']]);
-        }
-
-        $count = EventResult::where('event_id', $event->id)->count();
-        $this->line("  Synced {$count} results.");
-
-        if ($event->type === 'race') {
-            $this->openF1SyncPitStops($event, $openF1, $driverMap);
-        }
-    }
-
-    protected function openF1SyncPitStops(Event $event, OpenF1 $openF1, Collection $driverMap): void
-    {
-        $pitStops = $openF1->getPitStops($event->openf1_session_key);
-
-        if ($pitStops->isEmpty()) {
-            $this->warn('  No pit stop data.');
-
-            return;
-        }
-
-        foreach ($pitStops as $pit) {
-            $driverNumber = (int) $pit['driver_number'];
-            $seasonDriver = $driverMap[$driverNumber] ?? null;
-
-            if (! $seasonDriver) {
-                continue;
-            }
-
-            $stopTime = $pit['stop_duration'] ?? $pit['lane_duration'] ?? null;
-
-            if ($stopTime === null || $stopTime >= 999) {
-                continue;
-            }
-
-            $result = EventResult::where('event_id', $event->id)
-                ->where('driver_id', $seasonDriver->driver_id)
-                ->first();
-
-            if (! $result) {
-                continue;
-            }
-
-            EventPitstop::updateOrCreate(
-                [
-                    'event_id' => $event->id,
-                    'driver_id' => $seasonDriver->driver_id,
-                    'stop_lap' => (int) ($pit['lap_number'] ?? 0),
-                ],
-                [
-                    'constructor_id' => $seasonDriver->constructor_id,
-                    'stop_time_seconds' => (float) $stopTime,
-                    'is_fastest_of_event' => false,
-                    'data_source' => 'openf1',
-                ],
-            );
-        }
-
-        $this->markFastestPitStop($event);
-    }
-
     // ──────────────────────────────────────────────────────
     // Shared helpers
     // ──────────────────────────────────────────────────────
+
+    protected function resolveSeasonDriver(int $driverNumber, Collection $seasonDriverMap, Collection $openF1Drivers): ?SeasonDriver
+    {
+        if ($seasonDriver = $seasonDriverMap[$driverNumber] ?? null) {
+            return $seasonDriver;
+        }
+
+        $openF1Driver = $openF1Drivers[$driverNumber] ?? null;
+
+        if (! $openF1Driver) {
+            return null;
+        }
+
+        $fullName = $openF1Driver['full_name'] ?? null;
+
+        if (! $fullName) {
+            return null;
+        }
+
+        $match = $seasonDriverMap->first(fn ($sd) => mb_strtolower($sd->driver->name) === mb_strtolower($fullName));
+
+        if ($match) {
+            $this->line("  → Matched {$fullName} (#{$driverNumber}) by name to #{$seasonDriverMap->search($match)}");
+        }
+
+        return $match;
+    }
+
+    protected function syncDriverPhotos(Collection $driverMap, Collection $openF1Drivers): void
+    {
+        $driversNeedingPhotos = $driverMap->filter(fn ($sd) => ! $sd->driver->photo_path);
+
+        if ($driversNeedingPhotos->isEmpty()) {
+            return;
+        }
+
+        $synced = 0;
+
+        foreach ($driversNeedingPhotos as $number => $seasonDriver) {
+            $headshotUrl = $openF1Drivers[$number]['headshot_url'] ?? null;
+
+            if (! $headshotUrl) {
+                continue;
+            }
+
+            $seasonDriver->driver->update(['photo_path' => $headshotUrl]);
+            $synced++;
+        }
+
+        if ($synced > 0) {
+            $this->line("  Synced {$synced} driver photo(s).");
+        }
+    }
+
+    protected function syncConstructorColours(Collection $driverMap, Collection $openF1Drivers): void
+    {
+        $constructorsNeedingColour = $driverMap
+            ->unique('constructor_id')
+            ->filter(fn ($sd) => ! $sd->constructor->team_colour);
+
+        if ($constructorsNeedingColour->isEmpty()) {
+            return;
+        }
+
+        $synced = 0;
+
+        foreach ($constructorsNeedingColour as $number => $seasonDriver) {
+            $teamColour = $openF1Drivers[$number]['team_colour'] ?? null;
+
+            if (! $teamColour) {
+                continue;
+            }
+
+            $seasonDriver->constructor->update(['team_colour' => $teamColour]);
+            $synced++;
+        }
+
+        if ($synced > 0) {
+            $this->line("  Synced {$synced} constructor colour(s).");
+        }
+    }
+
+    protected function resolveDriver(int $number, array $result, Event $event, Constructor $constructor, Collection $driverMap): Driver
+    {
+        // First try to match by number, but verify the slug matches to avoid
+        // collisions (e.g. Verstappen #3 vs Ricciardo #3 in the same season)
+        $candidate = $driverMap[$number] ?? null;
+
+        if ($candidate && $candidate->slug === Str::slug(trim($result['Driver']['givenName'] . ' ' . $result['Driver']['familyName']))) {
+            return $candidate;
+        }
+
+        // Check if this driver already exists in the map under a different number
+        $driver = $this->f1->resolveDriver($result['Driver'], $event->season->franchise);
+        $existingEntry = $driverMap->first(fn ($d) => $d->id === $driver->id);
+
+        if ($existingEntry) {
+            return $existingEntry;
+        }
+
+        SeasonDriver::firstOrCreate(
+            [
+                'season_id' => $event->season_id,
+                'driver_id' => $driver->id,
+                'number' => $number,
+            ],
+            [
+                'constructor_id' => $constructor->id,
+                'effective_from' => "{$event->season->year}-01-01",
+            ],
+        );
+
+        $driverMap[$number] = $driver;
+
+        $this->line("  → Added mid-season driver: {$driver->name} (#{$number})");
+
+        return $driver;
+    }
+
+    protected function resolveConstructor(array $result): ?Constructor
+    {
+        $constructorId = $result['Constructor']['constructorId'];
+        $constructor = Constructor::where('jolpica_constructor_id', $constructorId)->first();
+
+        if (! $constructor) {
+            $this->warn("  Constructor not found: {$constructorId}");
+        }
+
+        return $constructor;
+    }
+
+    protected function resolveStatus(string $jolpicaStatus): string
+    {
+        if ($jolpicaStatus === 'Finished' || str_starts_with($jolpicaStatus, '+')) {
+            return 'classified';
+        }
+
+        if ($jolpicaStatus === 'Disqualified') {
+            return 'dsq';
+        }
+
+        if (in_array($jolpicaStatus, ['Did Not Start', 'Withdrew', 'Not Classified'])) {
+            return 'dns';
+        }
+
+        return 'dnf';
+    }
 
     protected function markFastestPitStop(Event $event): void
     {
@@ -699,5 +669,17 @@ class SyncF1Results extends Command
         $remaining = $seconds - ($minutes * 60);
 
         return sprintf('00:%02d:%06.3f', $minutes, $remaining);
+    }
+
+    /**
+     * Convert a lap time string like "1:23.456" to time format "00:01:23.456".
+     */
+    protected function lapTimeToTime(string $lapTime): string
+    {
+        if (preg_match('/^(\d+):(\d+\.\d+)$/', $lapTime, $matches)) {
+            return sprintf('00:%02d:%06.3f', (int) $matches[1], (float) $matches[2]);
+        }
+
+        return '00:00:00.000';
     }
 }

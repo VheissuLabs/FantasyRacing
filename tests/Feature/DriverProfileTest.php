@@ -104,7 +104,7 @@ test('season stats include constructor info', function () {
         );
 });
 
-test('recent results are limited to 10', function () {
+test('results by season groups results correctly', function () {
     $driver = Driver::factory()->create(['franchise_id' => $this->franchise->id, 'country_id' => $this->country->id]);
     Season::factory()->active()->create(['franchise_id' => $this->franchise->id]);
 
@@ -112,7 +112,7 @@ test('recent results are limited to 10', function () {
     $constructor = Constructor::factory()->create(['franchise_id' => $this->franchise->id]);
     $track = Track::factory()->create(['franchise_id' => $this->franchise->id, 'country_id' => $this->country->id]);
 
-    for ($i = 0; $i < 15; $i++) {
+    for ($i = 0; $i < 5; $i++) {
         $event = Event::factory()->completed()->create([
             'season_id' => $season->id,
             'track_id' => $track->id,
@@ -127,7 +127,7 @@ test('recent results are limited to 10', function () {
 
     $this->get(route('drivers.show', $driver->slug))
         ->assertOk()
-        ->assertInertia(fn ($page) => $page->has('recentResults', 10));
+        ->assertInertia(fn ($page) => $page->has('resultsBySeason', 1));
 });
 
 test('season page renders with season-specific data', function () {
@@ -212,8 +212,6 @@ test('drivers index page renders with correct component', function () {
         ->assertInertia(fn ($page) => $page
             ->component('Drivers/Index')
             ->has('drivers.data', 3)
-            ->has('franchises')
-            ->has('filters')
         );
 });
 
@@ -237,7 +235,7 @@ test('drivers index only shows active drivers', function () {
         );
 });
 
-test('drivers index filters by franchise', function () {
+test('drivers index filters by franchise via cookie', function () {
     $otherFranchise = Franchise::factory()->create();
 
     Driver::factory()->create([
@@ -252,11 +250,11 @@ test('drivers index filters by franchise', function () {
         'is_active' => true,
     ]);
 
-    $this->get(route('drivers.index', ['franchise' => $this->franchise->slug]))
+    $this->withUnencryptedCookie('franchise', $this->franchise->slug)
+        ->get(route('drivers.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->has('drivers.data', 1)
-            ->where('filters.franchise', $this->franchise->slug)
         );
 });
 

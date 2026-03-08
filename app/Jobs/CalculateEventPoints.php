@@ -19,6 +19,7 @@ class CalculateEventPoints implements ShouldQueue
     public function handle(PointsCalculationService $calculator): void
     {
         $calculator->calculateForEvent($this->event);
+        $calculator->aggregateForFantasyTeams($this->event);
 
         $this->notifyTeams();
 

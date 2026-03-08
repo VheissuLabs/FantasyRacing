@@ -15,17 +15,24 @@
         Sidebar,
         SidebarContent,
         SidebarFooter,
+        SidebarGroup,
+        SidebarGroupContent,
+        SidebarGroupLabel,
         SidebarHeader,
         SidebarMenu,
         SidebarMenuButton,
         SidebarMenuItem,
     } from '@/components/ui/sidebar'
+    import { useGlobalFilters } from '@/composables/useGlobalFilters'
     import { type NavItem } from '@/types'
     import AppLogo from './AppLogo.vue'
     import { index as constructorsIndex } from '@/actions/App/Http/Controllers/ConstructorProfileController'
     import { index as driversIndex } from '@/actions/App/Http/Controllers/DriverProfileController'
     import { index as leaguesIndex } from '@/actions/App/Http/Controllers/Leagues/LeagueDirectoryController'
     import { dashboard, docs } from '@/routes'
+
+    const { franchises, filters, availableSeasons, setFranchise, setSeason } =
+        useGlobalFilters()
 
     const mainNavItems: NavItem[] = [
         {
@@ -62,6 +69,16 @@
             icon: BookOpen,
         },
     ]
+
+    function onFranchiseChange(event: Event) {
+        const value = (event.target as HTMLSelectElement).value
+        setFranchise(value || null)
+    }
+
+    function onSeasonChange(event: Event) {
+        const value = (event.target as HTMLSelectElement).value
+        setSeason(value ? Number(value) : null)
+    }
 </script>
 
 <template>
@@ -85,6 +102,42 @@
         </SidebarHeader>
 
         <SidebarContent>
+            <!-- Global Filters -->
+            <SidebarGroup class="px-2 py-0">
+                <SidebarGroupLabel>Filters</SidebarGroupLabel>
+                <SidebarGroupContent class="space-y-2 px-2">
+                    <select
+                        :value="filters.franchise ?? ''"
+                        @change="onFranchiseChange"
+                        class="flex h-8 w-full rounded-md border border-input bg-background px-2 text-xs shadow-xs focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+                    >
+                        <option value="">All Franchises</option>
+                        <option
+                            v-for="franchise in franchises"
+                            :key="franchise.id"
+                            :value="franchise.slug"
+                        >
+                            {{ franchise.name }}
+                        </option>
+                    </select>
+                    <select
+                        v-if="availableSeasons.length > 0"
+                        :value="filters.seasonId ?? ''"
+                        @change="onSeasonChange"
+                        class="flex h-8 w-full rounded-md border border-input bg-background px-2 text-xs shadow-xs focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+                    >
+                        <option value="">All Seasons</option>
+                        <option
+                            v-for="season in availableSeasons"
+                            :key="season.id"
+                            :value="season.id"
+                        >
+                            {{ season.name }}
+                        </option>
+                    </select>
+                </SidebarGroupContent>
+            </SidebarGroup>
+
             <NavMain :items="mainNavItems" />
         </SidebarContent>
 

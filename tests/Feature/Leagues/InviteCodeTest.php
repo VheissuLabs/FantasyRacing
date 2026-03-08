@@ -80,7 +80,7 @@ test('commissioner can regenerate invite code', function () {
     $oldCode = $this->league->invite_code;
 
     $this->actingAs($this->commissioner)
-        ->post("/leagues/{$this->league->slug}/settings/regenerate-invite-code")
+        ->post(route('leagues.settings.regenerate-invite-code', $this->league->slug))
         ->assertRedirect();
 
     $this->league->refresh();
@@ -92,7 +92,7 @@ test('non-commissioner cannot regenerate invite code', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
-        ->post("/leagues/{$this->league->slug}/settings/regenerate-invite-code")
+        ->post(route('leagues.settings.regenerate-invite-code', $this->league->slug))
         ->assertForbidden();
 });
 
@@ -106,7 +106,7 @@ test('invite code is auto-generated when switching to invite_only', function () 
     ]);
 
     $this->actingAs($this->commissioner)
-        ->put("/leagues/{$league->slug}/settings", [
+        ->put(route('leagues.settings.update', $league->slug), [
             'name' => $league->name,
             'description' => $league->description,
             'max_teams' => $league->max_teams,
@@ -123,7 +123,7 @@ test('invite code is auto-generated when switching to invite_only', function () 
 
 test('invite code is cleared when switching away from invite_only', function () {
     $this->actingAs($this->commissioner)
-        ->put("/leagues/{$this->league->slug}/settings", [
+        ->put(route('leagues.settings.update', $this->league->slug), [
             'name' => $this->league->name,
             'description' => $this->league->description,
             'max_teams' => $this->league->max_teams,
@@ -139,7 +139,7 @@ test('invite code is cleared when switching away from invite_only', function () 
 
 test('invite code url is passed to commissioner on league show page', function () {
     $this->actingAs($this->commissioner)
-        ->get("/leagues/{$this->league->slug}")
+        ->get(route('leagues.show', $this->league->slug))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->where('inviteCodeUrl', url('/join/TESTCODE'))
@@ -150,7 +150,7 @@ test('invite code url is not passed to non-commissioner', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
-        ->get("/leagues/{$this->league->slug}")
+        ->get(route('leagues.show', $this->league->slug))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->where('inviteCodeUrl', null)

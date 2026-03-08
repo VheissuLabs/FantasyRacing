@@ -105,8 +105,6 @@ test('career summary aggregates correctly', function () {
             ->where('careerSummary.races_entered', 42)
             ->where('careerSummary.wins', 13)
             ->where('careerSummary.podiums', 27)
-            ->where('careerSummary.one_twos', 8)
-            ->where('careerSummary.poles', 16)
             ->where('careerSummary.best_championship', 1)
         );
 });
@@ -192,8 +190,6 @@ test('constructors index page renders with correct component', function () {
         ->assertInertia(fn ($page) => $page
             ->component('Constructors/Index')
             ->has('constructors.data', 3)
-            ->has('franchises')
-            ->has('filters')
         );
 });
 
@@ -215,7 +211,7 @@ test('constructors index only shows active constructors', function () {
         );
 });
 
-test('constructors index filters by franchise', function () {
+test('constructors index filters by franchise via cookie', function () {
     $otherFranchise = Franchise::factory()->create();
 
     Constructor::factory()->create([
@@ -228,11 +224,11 @@ test('constructors index filters by franchise', function () {
         'is_active' => true,
     ]);
 
-    $this->get(route('constructors.index', ['franchise' => $this->franchise->slug]))
+    $this->withUnencryptedCookie('franchise', $this->franchise->slug)
+        ->get(route('constructors.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->has('constructors.data', 1)
-            ->where('filters.franchise', $this->franchise->slug)
         );
 });
 

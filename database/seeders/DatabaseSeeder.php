@@ -19,8 +19,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'test@example.com',
         ]);
 
-        $this->call([
-            LeagueSeeder::class,
-        ]);
+        // LeagueSeeder is only useful for local dev with fake data.
+        // Real seasons are synced via `php artisan f1:sync {year}`.
     }
 }

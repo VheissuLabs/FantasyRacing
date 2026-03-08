@@ -62,6 +62,16 @@ class Jolpica
         return collect($response->json('MRData.DriverTable.Drivers', []));
     }
 
+    /**
+     * Fetch all qualifying results for every round of a season in a single request.
+     */
+    public function getAllQualifyingResults(int $year): Collection
+    {
+        $response = $this->get(self::BASE_URL . "/{$year}/qualifying.json", ['limit' => 1000]);
+
+        return collect($response->json('MRData.RaceTable.Races', []));
+    }
+
     public function getRaceResults(int $year, int $round): Collection
     {
         $response = $this->get(self::BASE_URL . "/{$year}/{$round}/results.json", ['limit' => 100]);

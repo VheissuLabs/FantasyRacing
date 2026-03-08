@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Franchise;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,6 +36,9 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $franchiseSlug = $request->cookie('franchise', '');
+        $seasonId = $request->cookie('season_id');
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
@@ -43,6 +47,34 @@ class HandleInertiaRequests extends Middleware
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'timezone' => $request->user()?->timezone ?? $request->header('X-Timezone', 'UTC'),
+            'globalFilters' => [
+                'franchise' => $franchiseSlug ?: null,
+                'seasonId' => $seasonId ? (int) $seasonId : null,
+            ],
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function shareOnce(Request $request): array
+    {
+        return array_merge(parent::shareOnce($request), [
+            'franchises' => fn () => Franchise::query()
+                ->where('is_active', true)
+                ->with(['seasons' => fn ($query) => $query->orderByDesc('year')])
+                ->orderBy('name')
+                ->get()
+                ->map(fn (Franchise $franchise) => [
+                    'id' => $franchise->id,
+                    'name' => $franchise->name,
+                    'slug' => $franchise->slug,
+                    'seasons' => $franchise->seasons->map(fn ($season) => [
+                        'id' => $season->id,
+                        'name' => $season->name,
+                        'year' => $season->year,
+                    ]),
+                ]),
+        ]);
     }
 }
