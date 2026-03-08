@@ -603,7 +603,7 @@ class SyncF1Results extends Command
 
     protected function resolveStatus(string $jolpicaStatus): string
     {
-        if ($jolpicaStatus === 'Finished' || str_starts_with($jolpicaStatus, '+')) {
+        if (in_array($jolpicaStatus, ['Finished', 'Lapped']) || str_starts_with($jolpicaStatus, '+')) {
             return 'classified';
         }
 
@@ -611,7 +611,9 @@ class SyncF1Results extends Command
             return 'dsq';
         }
 
-        if (in_array($jolpicaStatus, ['Did Not Start', 'Withdrew', 'Not Classified'])) {
+        $normalized = strtolower($jolpicaStatus);
+
+        if (in_array($normalized, ['did not start', 'withdrew', 'not classified'])) {
             return 'dns';
         }
 
