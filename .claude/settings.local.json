@@ -38,7 +38,9 @@
       "WebFetch(domain:fantasy-racing.vheissulabs.com)",
       "Bash(vendor/bin/duster lint:*)",
       "Bash(vendor/bin/duster fix:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "WebFetch(domain:openf1.org)",
+      "WebFetch(domain:api.openf1.org)"
     ]
   },
   "enableAllProjectMcpServers": true,

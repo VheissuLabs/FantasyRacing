@@ -54,7 +54,7 @@ class EventResult extends Model
 
     public function hasPenalty(): bool
     {
-        return in_array($this->status, ['dnf', 'dns', 'dsq']);
+        return in_array($this->status, ['dnf', 'dns', 'dsq', 'not_classified']);
     }
 
     protected function casts(): array

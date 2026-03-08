@@ -120,8 +120,8 @@ class SyncF1Results extends Command
         // 3. Mark completed and calculate points
         if ($event->results()->exists()) {
             $event->update(['status' => 'completed', 'last_synced_at' => now()]);
-            CalculateEventPoints::dispatch($event);
-            $this->line("  Dispatched points calculation for {$event->name}.");
+            CalculateEventPoints::dispatchSync($event);
+            $this->line("  Calculated points for {$event->name}.");
         }
     }
 
@@ -176,6 +176,55 @@ class SyncF1Results extends Command
         })->filter();
 
         $this->syncPitStops($event, $jolpica, $year, $round, $driverIdMap);
+        $this->backfillMissingQualifyingResults($event);
+    }
+
+    /**
+     * Create "not_classified" qualifying entries for drivers who raced
+     * but have no qualifying result (e.g. crashed in qualifying).
+     */
+    protected function backfillMissingQualifyingResults(Event $raceEvent): void
+    {
+        $qualifyingEvent = Event::where('season_id', $raceEvent->season_id)
+            ->where('round', $raceEvent->round)
+            ->where('type', 'qualifying')
+            ->first();
+
+        if (! $qualifyingEvent) {
+            return;
+        }
+
+        $raceDriverIds = EventResult::where('event_id', $raceEvent->id)->pluck('driver_id');
+        $qualifiedDriverIds = EventResult::where('event_id', $qualifyingEvent->id)->pluck('driver_id');
+        $missingDriverIds = $raceDriverIds->diff($qualifiedDriverIds);
+
+        if ($missingDriverIds->isEmpty()) {
+            return;
+        }
+
+        $maxPosition = EventResult::where('event_id', $qualifyingEvent->id)->max('finish_position') ?? 0;
+
+        foreach ($missingDriverIds as $driverId) {
+            $raceResult = EventResult::where('event_id', $raceEvent->id)
+                ->where('driver_id', $driverId)
+                ->first();
+
+            $maxPosition++;
+
+            EventResult::updateOrCreate(
+                ['event_id' => $qualifyingEvent->id, 'driver_id' => $driverId],
+                [
+                    'constructor_id' => $raceResult->constructor_id,
+                    'finish_position' => $maxPosition,
+                    'grid_position' => null,
+                    'status' => 'not_classified',
+                    'data_source' => 'derived',
+                ],
+            );
+        }
+
+        CalculateEventPoints::dispatchSync($qualifyingEvent);
+        $this->line("  Backfilled {$missingDriverIds->count()} missing qualifying result(s) and recalculated points.");
     }
 
     protected function syncQualifying(Event $event, Jolpica $jolpica, int $year, int $round, Collection $driverMap): void
@@ -381,6 +430,11 @@ class SyncF1Results extends Command
             $this->enrichQualifyingTimes($event, $openF1, $seasonDriverMap, $openF1Drivers);
             $this->computeTeammateOutqualified($event);
         }
+
+        // Enrich race/sprint with grid positions, fastest lap, and overtakes
+        if (in_array($event->type, ['race', 'sprint'])) {
+            $this->enrichRaceData($event, $openF1, $seasonDriverMap, $openF1Drivers);
+        }
     }
 
     protected function enrichQualifyingTimes(Event $event, OpenF1 $openF1, Collection $seasonDriverMap, Collection $openF1Drivers): void
@@ -425,6 +479,381 @@ class SyncF1Results extends Command
         if ($enriched > 0) {
             $this->line("  Enriched {$enriched} qualifying times from OpenF1.");
         }
+    }
+
+    protected function enrichRaceData(Event $event, OpenF1 $openF1, Collection $seasonDriverMap, Collection $openF1Drivers): void
+    {
+        $sessionKey = $event->openf1_session_key;
+
+        $this->enrichGridPositions($event, $openF1, $sessionKey, $seasonDriverMap, $openF1Drivers);
+        $this->enrichFastestLap($event, $openF1, $sessionKey, $seasonDriverMap, $openF1Drivers);
+        $this->enrichOvertakes($event, $openF1, $sessionKey, $seasonDriverMap, $openF1Drivers);
+    }
+
+    protected function enrichGridPositions(Event $event, OpenF1 $openF1, int $sessionKey, Collection $seasonDriverMap, Collection $openF1Drivers): void
+    {
+        $positions = $openF1->getPositions($sessionKey);
+
+        if ($positions->isEmpty()) {
+            return;
+        }
+
+        // The first position entry per driver represents their grid position
+        $gridPositions = $positions->groupBy('driver_number')
+            ->map(fn ($entries) => $entries->sortBy('date')->first()['position'] ?? null)
+            ->filter();
+
+        $enriched = 0;
+
+        foreach ($gridPositions as $driverNumber => $gridPosition) {
+            $seasonDriver = $this->resolveSeasonDriver((int) $driverNumber, $seasonDriverMap, $openF1Drivers);
+
+            if (! $seasonDriver) {
+                continue;
+            }
+
+            $updated = EventResult::where('event_id', $event->id)
+                ->where('driver_id', $seasonDriver->driver_id)
+                ->whereNull('grid_position')
+                ->update(['grid_position' => (int) $gridPosition]);
+
+            $enriched += $updated;
+        }
+
+        if ($enriched > 0) {
+            $this->line("  Enriched {$enriched} grid positions from OpenF1.");
+        }
+    }
+
+    protected function enrichFastestLap(Event $event, OpenF1 $openF1, int $sessionKey, Collection $seasonDriverMap, Collection $openF1Drivers): void
+    {
+        $laps = $openF1->getLaps($sessionKey);
+
+        if ($laps->isEmpty()) {
+            return;
+        }
+
+        // Filter out pit out laps and laps without a duration
+        $validLaps = $laps->filter(fn ($lap) => ! ($lap['is_pit_out_lap'] ?? false) && isset($lap['lap_duration']) && $lap['lap_duration'] > 0);
+
+        if ($validLaps->isEmpty()) {
+            return;
+        }
+
+        $fastestLap = $validLaps->sortBy('lap_duration')->first();
+        $fastestDriverNumber = (int) $fastestLap['driver_number'];
+        $seasonDriver = $this->resolveSeasonDriver($fastestDriverNumber, $seasonDriverMap, $openF1Drivers);
+
+        if (! $seasonDriver) {
+            return;
+        }
+
+        // Clear any existing fastest lap flag, then set the new one
+        EventResult::where('event_id', $event->id)->update(['fastest_lap' => false]);
+        EventResult::where('event_id', $event->id)
+            ->where('driver_id', $seasonDriver->driver_id)
+            ->update(['fastest_lap' => true]);
+
+        $this->line("  Fastest lap: {$seasonDriver->driver->name} ({$fastestLap['lap_duration']}s)");
+    }
+
+    protected function enrichOvertakes(Event $event, OpenF1 $openF1, int $sessionKey, Collection $seasonDriverMap, Collection $openF1Drivers): void
+    {
+        $positions = $openF1->getPositions($sessionKey);
+
+        if ($positions->isEmpty()) {
+            return;
+        }
+
+        // Count non-starters (DNS) and their grid positions for first-lap adjustment
+        $nonStarterGridPositions = EventResult::where('event_id', $event->id)
+            ->where('status', 'dns')
+            ->pluck('grid_position')
+            ->filter()
+            ->values();
+
+        $enriched = 0;
+
+        $grouped = $positions->groupBy('driver_number');
+
+        foreach ($grouped as $driverNumber => $entries) {
+            $seasonDriver = $this->resolveSeasonDriver((int) $driverNumber, $seasonDriverMap, $openF1Drivers);
+
+            if (! $seasonDriver) {
+                continue;
+            }
+
+            $result = EventResult::where('event_id', $event->id)
+                ->where('driver_id', $seasonDriver->driver_id)
+                ->first();
+
+            if (! $result) {
+                continue;
+            }
+
+            $sorted = $entries->sortBy('date')->values();
+            $gridPosition = $result->grid_position;
+            $dnsAhead = $gridPosition ? $nonStarterGridPositions->filter(fn ($p) => $p < $gridPosition)->count() : 0;
+
+            $overtakes = $this->countOvertakes($sorted, $positions, $gridPosition, $dnsAhead);
+
+            EventResult::where('event_id', $event->id)
+                ->where('driver_id', $seasonDriver->driver_id)
+                ->update(['overtakes_made' => $overtakes]);
+            $enriched++;
+        }
+
+        if ($enriched > 0) {
+            $this->line("  Enriched {$enriched} driver overtake counts from OpenF1.");
+        }
+    }
+
+    /**
+     * Count overtakes from OpenF1 position data.
+     *
+     * Each position decrease is counted as 1 overtake event. Filters applied:
+     * 1. Sustained: for small gains (≤2 positions), the exact position must be held for ≥10s.
+     *    For large gains (≥3), the driver must still be better than pre-gain position at 10s.
+     * 2. Passed car check: if the car being passed was failing or pitting (dropped 5+
+     *    positions in 60s), the pass doesn't count per F1 rules.
+     * 3. Same-level dedup: same position gained twice within 30s counts as 1
+     * 4. Pre-gain volatility: for small gains, skip if >5 changes in prior 30s (first-lap chaos)
+     * 5. Post-gain volatility: skip if >5 changes in next 15s (position oscillation)
+     *
+     * When the first-lap gain is too volatile to count individually, first-lap overtakes
+     * are estimated as: (grid position - DNS cars ahead) - settled position.
+     */
+    protected function countOvertakes(Collection $sorted, Collection $allPositions, ?int $gridPosition = null, int $dnsAhead = 0): int
+    {
+        $overtakes = 0;
+        $recentGains = [];
+
+        for ($i = 1; $i < $sorted->count(); $i++) {
+            $prev = $sorted[$i - 1]['position'];
+            $curr = $sorted[$i]['position'];
+
+            if ($curr >= $prev) {
+                continue;
+            }
+
+            $gainedAt = strtotime($sorted[$i]['date']);
+            $positionsGained = $prev - $curr;
+
+            // 1. Sustained check (varies by gain size)
+            if ($positionsGained >= 3) {
+                // Large gains: position at 10s must still be better than pre-gain
+                $posAt10s = $curr;
+
+                for ($j = $i + 1; $j < $sorted->count(); $j++) {
+                    $nextAt = strtotime($sorted[$j]['date']);
+
+                    if ($nextAt - $gainedAt >= 10) {
+                        break;
+                    }
+
+                    $posAt10s = $sorted[$j]['position'];
+                }
+
+                if ($posAt10s >= $prev) {
+                    continue;
+                }
+            } else {
+                // Small gains: exact position (or better) must be held for ≥10s
+                $sustained = true;
+
+                for ($j = $i + 1; $j < $sorted->count(); $j++) {
+                    $nextAt = strtotime($sorted[$j]['date']);
+
+                    if ($nextAt - $gainedAt >= 10) {
+                        break;
+                    }
+
+                    if ($sorted[$j]['position'] > $curr) {
+                        $sustained = false;
+                        break;
+                    }
+                }
+
+                if (! $sustained) {
+                    continue;
+                }
+            }
+
+            // 2. Net loss + passed car check
+            // If driver drops below pre-gain position within 120s, check why:
+            // - If the car passed was failing (5+ pos drop in 60s), it wasn't a real overtake
+            // - If the car passed was racing normally, the gain was real despite later loss
+            $droppedBelowPrev = false;
+
+            for ($j = $i + 1; $j < $sorted->count(); $j++) {
+                $nextAt = strtotime($sorted[$j]['date']);
+
+                if ($nextAt - $gainedAt > 120) {
+                    break;
+                }
+
+                if ($sorted[$j]['position'] > $prev) {
+                    $droppedBelowPrev = true;
+                    break;
+                }
+            }
+
+            if ($droppedBelowPrev) {
+                // Check if the passed car was failing — if so, this wasn't a real overtake
+                // If the passed car was racing normally, the gain was real (driver just lost it later)
+                $passedCarFailing = $this->passedCarWasFailingOrPitting($allPositions, $sorted[$i]['date'], $curr, $sorted[$i]['driver_number']);
+
+                if ($passedCarFailing) {
+                    continue;
+                }
+            }
+
+            // 3. Same-level dedup: same position gained within 30s counts as 1,
+            //    unless the car being passed is different (separate overtake)
+            $passedDriverNumber = $this->findPassedDriver($allPositions, $sorted[$i]['date'], $curr, $sorted[$i]['driver_number']);
+
+            if (isset($recentGains[$curr]) && ($gainedAt - $recentGains[$curr]['time']) < 30) {
+                if ($passedDriverNumber && $passedDriverNumber === $recentGains[$curr]['driver']) {
+                    $recentGains[$curr] = ['time' => $gainedAt, 'driver' => $passedDriverNumber];
+
+                    continue;
+                }
+            }
+
+            $recentGains[$curr] = ['time' => $gainedAt, 'driver' => $passedDriverNumber];
+
+            // 4. Pre-gain volatility: for small gains, skip if >5 changes in prior 30s
+            if ($positionsGained <= 2) {
+                $changes = 0;
+
+                for ($j = $i - 1; $j >= 0; $j--) {
+                    $prevAt = strtotime($sorted[$j]['date']);
+
+                    if ($gainedAt - $prevAt > 30) {
+                        break;
+                    }
+
+                    $changes++;
+                }
+
+                if ($changes > 5) {
+                    continue;
+                }
+            }
+
+            // 5. Post-gain volatility: skip if >5 changes in next 15s (oscillation)
+            $postChanges = 0;
+
+            for ($j = $i + 1; $j < $sorted->count(); $j++) {
+                $nextAt = strtotime($sorted[$j]['date']);
+
+                if ($nextAt - $gainedAt > 15) {
+                    break;
+                }
+
+                $postChanges++;
+            }
+
+            if ($postChanges > 5) {
+                // First-lap large gain killed by volatility: estimate from grid position
+                if ($i === 1 && $gridPosition && $positionsGained >= 3) {
+                    $overtakes += $this->estimateFirstLapOvertakes($sorted, $gridPosition, $dnsAhead);
+                }
+
+                continue;
+            }
+
+            $overtakes++;
+        }
+
+        return $overtakes;
+    }
+
+    /**
+     * Estimate first-lap overtakes when position data is too volatile.
+     *
+     * Uses the driver's settled position (first position held ≥60s) compared
+     * to their effective grid position (adjusted for DNS cars ahead).
+     */
+    protected function estimateFirstLapOvertakes(Collection $sorted, int $gridPosition, int $dnsAhead): int
+    {
+        $effectiveGrid = $gridPosition - $dnsAhead;
+
+        // Find settled position: first position after the opening gain that's held for ≥60s
+        for ($i = 1; $i < $sorted->count() - 1; $i++) {
+            $heldUntil = strtotime($sorted[$i + 1]['date']) - strtotime($sorted[$i]['date']);
+
+            if ($heldUntil >= 60) {
+                return max(0, $effectiveGrid - $sorted[$i]['position']);
+            }
+        }
+
+        // Fallback: use the last recorded position
+        return max(0, $effectiveGrid - $sorted->last()['position']);
+    }
+
+    /**
+     * Find the driver number at a specific position at a given timestamp (excluding our driver).
+     */
+    protected function findDriverAtPosition(Collection $allPositions, string $date, int $position, int $ourDriverNumber): ?int
+    {
+        $driver = $allPositions->first(function ($p) use ($date, $position, $ourDriverNumber) {
+            return $p['date'] === $date
+                && $p['position'] === $position
+                && $p['driver_number'] !== $ourDriverNumber;
+        });
+
+        return $driver ? (int) $driver['driver_number'] : null;
+    }
+
+    /**
+     * Find the driver number of the car that was passed (dropped from the gained position).
+     */
+    protected function findPassedDriver(Collection $allPositions, string $gainDate, int $gainedPosition, int $ourDriverNumber): ?int
+    {
+        $passedDriver = $allPositions->first(function ($p) use ($gainDate, $gainedPosition, $ourDriverNumber) {
+            return $p['date'] === $gainDate
+                && $p['position'] === $gainedPosition + 1
+                && $p['driver_number'] !== $ourDriverNumber;
+        });
+
+        return $passedDriver ? (int) $passedDriver['driver_number'] : null;
+    }
+
+    /**
+     * Check if the car being passed was suffering a failure or entering the pits.
+     *
+     * Finds the driver who held the gained position and checks if they dropped
+     * 5+ positions within 60s — indicating a car failure or pit entry.
+     */
+    protected function passedCarWasFailingOrPitting(Collection $allPositions, string $gainDate, int $gainedPosition, int $ourDriverNumber): bool
+    {
+        // Find the driver who dropped from the gained position at this timestamp
+        $passedDriver = $allPositions->first(function ($p) use ($gainDate, $gainedPosition, $ourDriverNumber) {
+            return $p['date'] === $gainDate
+                && $p['position'] === $gainedPosition + 1
+                && $p['driver_number'] !== $ourDriverNumber;
+        });
+
+        if (! $passedDriver) {
+            return false;
+        }
+
+        $gainTime = strtotime($gainDate);
+
+        // Check if the passed driver dropped 5+ positions in the next 60s
+        $passedEntries = $allPositions->where('driver_number', $passedDriver['driver_number'])
+            ->filter(fn ($p) => strtotime($p['date']) >= $gainTime && strtotime($p['date']) <= $gainTime + 60)
+            ->sortBy('date');
+
+        if ($passedEntries->isEmpty()) {
+            return false;
+        }
+
+        $startPos = $passedEntries->first()['position'];
+        $worstPos = $passedEntries->max('position');
+
+        return ($worstPos - $startPos) >= 5;
     }
 
     protected function discoverSessionKey(Event $event, OpenF1 $openF1): ?int
@@ -603,7 +1032,7 @@ class SyncF1Results extends Command
 
     protected function resolveStatus(string $jolpicaStatus): string
     {
-        if ($jolpicaStatus === 'Finished' || str_starts_with($jolpicaStatus, '+')) {
+        if (in_array($jolpicaStatus, ['Finished', 'Lapped']) || str_starts_with($jolpicaStatus, '+')) {
             return 'classified';
         }
 
@@ -611,7 +1040,9 @@ class SyncF1Results extends Command
             return 'dsq';
         }
 
-        if (in_array($jolpicaStatus, ['Did Not Start', 'Withdrew', 'Not Classified'])) {
+        $normalized = strtolower($jolpicaStatus);
+
+        if (in_array($normalized, ['did not start', 'withdrew', 'not classified'])) {
             return 'dns';
         }
 

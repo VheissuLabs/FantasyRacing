@@ -180,37 +180,32 @@ class PointsCalculationService
             $breakdown[$penaltyKey] = $penalty;
         }
 
-        if ($event->type === 'race') {
+        if (in_array($event->type, ['race', 'sprint'])) {
             if ($result->fastest_lap) {
-                $bonusPoints = $this->bonus('race', 'fastest_lap', 'driver', $franchiseId);
+                $bonusPoints = $this->bonus($event->type, 'fastest_lap', 'driver', $franchiseId);
                 $points += $bonusPoints;
                 $breakdown['fastest_lap'] = $bonusPoints;
             }
-            if ($result->driver_of_the_day) {
+
+            if ($event->type === 'race' && $result->driver_of_the_day) {
                 $bonusPoints = $this->bonus('race', 'driver_of_the_day', 'driver', $franchiseId);
                 $points += $bonusPoints;
                 $breakdown['driver_of_the_day'] = $bonusPoints;
             }
-        } elseif ($event->type === 'sprint') {
-            if ($result->fastest_lap) {
-                $bonusPoints = $this->bonus('sprint', 'fastest_lap', 'driver', $franchiseId);
-                $points += $bonusPoints;
-                $breakdown['fastest_lap'] = $bonusPoints;
-            }
 
-            if ($result->grid_position && $result->finish_position) {
+            if ($result->isClassified() && $result->grid_position && $result->finish_position) {
                 $gained = max(0, $result->grid_position - $result->finish_position);
                 $lost = max(0, $result->finish_position - $result->grid_position);
 
                 if ($gained > 0) {
-                    $perPos = $this->bonus('sprint', 'positions_gained', 'driver', $franchiseId);
+                    $perPos = $this->bonus($event->type, 'positions_gained', 'driver', $franchiseId);
                     $gainedPoints = $gained * $perPos;
                     $points += $gainedPoints;
                     $breakdown['positions_gained'] = $gainedPoints;
                 }
 
                 if ($lost > 0) {
-                    $perPos = $this->bonus('sprint', 'positions_lost', 'driver', $franchiseId);
+                    $perPos = $this->bonus($event->type, 'positions_lost', 'driver', $franchiseId);
                     $lostPoints = $lost * $perPos;
                     $points += $lostPoints;
                     $breakdown['positions_lost'] = $lostPoints;
@@ -218,7 +213,7 @@ class PointsCalculationService
             }
 
             if ($result->overtakes_made > 0) {
-                $perOvertake = $this->bonus('sprint', 'overtake', 'driver', $franchiseId);
+                $perOvertake = $this->bonus($event->type, 'overtake', 'driver', $franchiseId);
                 $overtakePoints = $result->overtakes_made * $perOvertake;
                 $points += $overtakePoints;
                 $breakdown['overtakes'] = $overtakePoints;
