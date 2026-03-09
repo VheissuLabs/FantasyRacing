@@ -24,11 +24,11 @@ class ViewEvent extends ViewRecord
                 ->modalDescription('This will calculate fantasy points for all teams in this event and refresh season stats.')
                 ->visible(fn (Event $record): bool => $record->status === 'completed' && $record->results()->exists())
                 ->action(function (Event $record) {
-                    CalculateEventPoints::dispatch($record);
+                    CalculateEventPoints::dispatchSync($record);
 
                     Notification::make()
-                        ->title('Points calculation queued')
-                        ->body("Points calculation for {$record->name} has been dispatched.")
+                        ->title('Points recalculated')
+                        ->body("Points for {$record->name} have been recalculated.")
                         ->success()
                         ->send();
                 }),
