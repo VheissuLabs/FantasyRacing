@@ -1,6 +1,8 @@
 <?php
 
+use App\Jobs\RefreshSeasonStats;
 use App\Models\Event;
+use App\Models\Season;
 use App\Services\PointsCalculationService;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
@@ -69,5 +71,7 @@ return new class extends Migration
 
         Event::where('status', 'completed')
             ->each(fn ($event) => $calculator->calculateForEvent($event));
+
+        Season::each(fn ($season) => RefreshSeasonStats::dispatchSync($season));
     }
 };
